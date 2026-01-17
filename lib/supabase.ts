@@ -12,7 +12,10 @@ export const supabase = (supabaseUrl && supabaseKey && !supabaseUrl.includes('pl
                 console.warn(`Supabase: Intentando acceder a '${table}' pero falta configuración de URL/Key.`);
             }
             return {
-                select: () => Promise.resolve({ data: [], error: { message: 'Supabase no configurado' } }),
+                select: () => ({
+                    order: () => Promise.resolve({ data: [], error: { message: 'Supabase no configurado' } }),
+                    then: (fn: any) => Promise.resolve({ data: [], error: { message: 'Supabase no configurado' } }).then(fn)
+                }) as any,
                 insert: () => Promise.resolve({ data: [], error: { message: 'Supabase no configurado' } }),
                 update: () => ({ eq: () => Promise.resolve({ data: [], error: { message: 'Supabase no configurado' } }) }),
                 delete: () => ({
