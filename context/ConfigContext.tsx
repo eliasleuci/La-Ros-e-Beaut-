@@ -220,7 +220,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                 ]);
 
                 // Check if Cloud is empty
-                const cloudIsReady = servicesData && servicesData.length > 0;
+                // We consider cloud NOT empty if there are services OR if there is config data (meaning it was already initialized)
+                const cloudIsReady = (servicesData && servicesData.length > 0) || (configData && configData.length > 0) || (faqsData && faqsData.length > 0);
 
                 if (!cloudIsReady) {
                     console.log('Cloud está vacío o incompleto. Buscando datos locales para migrar...');
@@ -381,19 +382,24 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             // 2. Identificar IDs que ya no existen (para borrar)
             const idsToDelete = currentIds.filter((id: string) => !newIds.includes(id));
 
+            console.log('📊 DIAGNÓSTICO DE SINCRONIZACIÓN:');
+            console.log('   - IDs en Base de Datos:', currentIds);
+            console.log('   - IDs en Nuevo Estado:', newIds);
+            console.log('   - IDs Detectados para Borrar:', idsToDelete);
+
             // 3. Borrar solo los servicios removidos
             if (idsToDelete.length > 0) {
-                console.log('🗑️ Eliminando servicios con IDs:', idsToDelete);
-                const { error: deleteError } = await supabase
+                console.log('🗑️ Intentando eliminar servicios:', idsToDelete);
+                const { error: deleteError, count } = await supabase
                     .from('services')
-                    .delete()
+                    .delete({ count: 'exact' }) // Request count of deleted rows
                     .in('id', idsToDelete);
 
                 if (deleteError) {
                     console.error('❌ Error al eliminar servicios:', deleteError);
-                    alert('⚠️ No se pudieron eliminar algunos servicios. Es probable que tengan reservas asociadas. Error: ' + deleteError.message);
+                    alert('⚠️ No se pudieron eliminar algunos servicios. Error: ' + deleteError.message);
                 } else {
-                    console.log('✅ Servicios eliminados correctamente');
+                    console.log(`✅ Servicios eliminados correctamente. Registros afectados: ${count}`);
                 }
             }
 
@@ -410,6 +416,13 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                 } else {
                     console.log('✅ Servicios actualizados/creados correctamente');
                 }
+            }
+
+            // 5. RE-FETCH FINAL (Para asegurar que lo que ve el usuario es lo real)
+            const { data: finalData } = await supabase.from('services').select('*');
+            if (finalData) {
+                console.log('🔄 Sincronización final: actualizando estado local desde DB');
+                setServices(finalData);
             }
 
         } catch (err) {
