@@ -62,6 +62,23 @@ export interface ProfessionalBlock {
     professionalId: string;
 }
 
+export interface ExpenseCategory {
+    id: string;
+    name: string;
+    color: string;
+}
+
+export interface Expense {
+    id: string;
+    categoryId: string;
+    categoryName: string;
+    amount: number;
+    description: string;
+    date: string; // YYYY-MM-DD
+    paymentMethod: 'cash' | 'card' | 'transfer';
+    createdAt: string;
+}
+
 interface ConfigContextType {
     services: Service[];
     businessPhone: string;
@@ -74,6 +91,8 @@ interface ConfigContextType {
     bookings: Booking[];
     reviews: Review[];
     clinicalRecords: ClinicalRecord[];
+    expenseCategories: ExpenseCategory[];
+    expenses: Expense[];
     updateServices: (services: Service[]) => void;
     updatePhone: (phone: string) => void;
     updatePin: (pin: string) => void;
@@ -92,6 +111,12 @@ interface ConfigContextType {
     addClinicalRecord: (record: ClinicalRecord) => void;
     updateClinicalRecord: (record: ClinicalRecord) => void;
     deleteClinicalRecord: (id: string) => void;
+    addExpenseCategory: (category: ExpenseCategory) => void;
+    updateExpenseCategory: (category: ExpenseCategory) => void;
+    deleteExpenseCategory: (id: string) => void;
+    addExpense: (expense: Expense) => void;
+    updateExpense: (expense: Expense) => void;
+    deleteExpense: (id: string) => void;
     resetToDefaults: () => void;
 }
 
@@ -157,6 +182,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     const [bookings, setBookings] = useState<Booking[]>(DEFAULT_BOOKINGS);
     const [reviews, setReviews] = useState<Review[]>(DEFAULT_REVIEWS);
     const [clinicalRecords, setClinicalRecords] = useState<ClinicalRecord[]>([]);
+    const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+    const [expenses, setExpenses] = useState<Expense[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
     // Load from Supabase on mount with migration and self-healing logic
@@ -175,7 +202,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     { data: reviewsData },
                     { data: clinicalData },
                     { data: galleryData },
-                    { data: proBlockedData }
+                    { data: proBlockedData },
+                    { data: expenseCategoriesData },
+                    { data: expensesData }
                 ] = await Promise.all([
                     supabase.from('services').select('*'),
                     supabase.from('app_config').select('*'),
@@ -185,7 +214,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     supabase.from('reviews').select('*').order('date', { ascending: false }),
                     supabase.from('clinical_records').select('*').order('date', { ascending: false }),
                     supabase.from('gallery').select('*'),
-                    supabase.from('professional_blocks').select('*')
+                    supabase.from('professional_blocks').select('*'),
+                    supabase.from('expense_categories').select('*'),
+                    supabase.from('expenses').select('*').order('created_at', { ascending: false })
                 ]);
 
                 // Check if Cloud is empty
@@ -302,6 +333,18 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
                     if (proBlockedData) setProfessionalBlocks(proBlockedData);
                     if (galleryData) setGalleryImages(galleryData.map((g: any) => g.image_url));
+
+                    // Load expense categories and expenses
+                    if (expenseCategoriesData) setExpenseCategories(expenseCategoriesData);
+                    if (expensesData) {
+                        setExpenses(expensesData.map((e: any) => ({
+                            ...e,
+                            categoryId: e.category_id,
+                            categoryName: e.category_name,
+                            paymentMethod: e.payment_method,
+                            createdAt: e.created_at
+                        })));
+                    }
                 }
 
             } catch (error) {
@@ -474,6 +517,60 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         await supabase.from('clinical_records').delete().eq('id', id);
     };
 
+    // Expense Category CRUD
+    const addExpenseCategory = async (category: ExpenseCategory) => {
+        setExpenseCategories(prev => [...prev, category]);
+        await supabase.from('expense_categories').insert(category);
+    };
+
+    const updateExpenseCategory = async (category: ExpenseCategory) => {
+        setExpenseCategories(prev => prev.map(c => c.id === category.id ? category : c));
+        await supabase.from('expense_categories').update({
+            name: category.name,
+            color: category.color
+        }).eq('id', category.id);
+    };
+
+    const deleteExpenseCategory = async (id: string) => {
+        setExpenseCategories(prev => prev.filter(c => c.id !== id));
+        await supabase.from('expense_categories').delete().eq('id', id);
+        // Also delete all expenses in this category
+        setExpenses(prev => prev.filter(e => e.categoryId !== id));
+        await supabase.from('expenses').delete().eq('category_id', id);
+    };
+
+    // Expense CRUD
+    const addExpense = async (expense: Expense) => {
+        setExpenses(prev => [expense, ...prev]);
+        await supabase.from('expenses').insert({
+            id: expense.id,
+            category_id: expense.categoryId,
+            category_name: expense.categoryName,
+            amount: expense.amount,
+            description: expense.description,
+            date: expense.date,
+            payment_method: expense.paymentMethod,
+            created_at: expense.createdAt
+        });
+    };
+
+    const updateExpense = async (expense: Expense) => {
+        setExpenses(prev => prev.map(e => e.id === expense.id ? expense : e));
+        await supabase.from('expenses').update({
+            category_id: expense.categoryId,
+            category_name: expense.categoryName,
+            amount: expense.amount,
+            description: expense.description,
+            date: expense.date,
+            payment_method: expense.paymentMethod
+        }).eq('id', expense.id);
+    };
+
+    const deleteExpense = async (id: string) => {
+        setExpenses(prev => prev.filter(e => e.id !== id));
+        await supabase.from('expenses').delete().eq('id', id);
+    };
+
     const resetToDefaults = () => {
         setServices(DEFAULT_SERVICES);
         setBusinessPhone(DEFAULT_PHONE);
@@ -499,6 +596,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             bookings,
             reviews,
             clinicalRecords,
+            expenseCategories,
+            expenses,
             updateServices,
             updatePhone,
             updatePin,
@@ -517,6 +616,12 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             addClinicalRecord,
             updateClinicalRecord,
             deleteClinicalRecord,
+            addExpenseCategory,
+            updateExpenseCategory,
+            deleteExpenseCategory,
+            addExpense,
+            updateExpense,
+            deleteExpense,
             resetToDefaults
         }}>
             {children}

@@ -12,6 +12,7 @@ import { GalleryManager } from '@/components/admin/GalleryManager';
 import { TeamManager } from '@/components/admin/TeamManager';
 import { BookingList } from '@/components/admin/BookingList';
 import { ReviewManager } from '@/components/admin/ReviewManager';
+import { ExpenseManager } from '@/components/admin/ExpenseManager';
 
 export default function AdminPage() {
     const { services, businessPhone, adminPin, updateServices, updatePhone } = useConfig();
@@ -218,6 +219,9 @@ export default function AdminPage() {
                                 </div>
                             )}
                         </Card>
+
+                        {/* Gastos */}
+                        <ExpenseManager />
 
                         {/* Equipo */}
                         <TeamManager />
