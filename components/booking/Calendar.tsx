@@ -140,7 +140,7 @@ export function Calendar({ onSelect, onBack }: CalendarProps) {
                             .replace('{month}', t(`months.${selectedDate.getMonth()}`))}
                     </h4>
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                        {generateTimeSlots().map(time => (
+                        {generateTimeSlots(10, 20).map(time => (
                             <button
                                 key={time}
                                 onClick={() => setSelectedTime(time)}
