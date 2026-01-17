@@ -363,12 +363,59 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
     const updateServices = async (newServices: Service[]) => {
         setServices(newServices);
-        const { error: delError } = await supabase.from('services').delete().not('id', 'is', null);
-        if (delError) console.error('Error al limpiar servicios:', delError);
 
-        const { error: insError } = await supabase.from('services').insert(newServices);
-        if (insError) console.error('Error al insertar servicios:', insError);
-        else console.log('Servicios sincronizados exitosamente');
+        console.log('🔄 Sincronizando servicios con una estrategia diferencial...');
+
+        try {
+            // 1. Obtener IDs actuales en la BD para saber cuáles borrar
+            const { data: currentDbServices, error: fetchError } = await supabase.from('services').select('id');
+
+            if (fetchError) {
+                console.error('❌ Error al obtener servicios actuales:', fetchError);
+                return;
+            }
+
+            const currentIds = currentDbServices?.map((s: { id: string }) => s.id) || [];
+            const newIds = newServices.map(s => s.id);
+
+            // 2. Identificar IDs que ya no existen (para borrar)
+            const idsToDelete = currentIds.filter((id: string) => !newIds.includes(id));
+
+            // 3. Borrar solo los servicios removidos
+            if (idsToDelete.length > 0) {
+                console.log('🗑️ Eliminando servicios con IDs:', idsToDelete);
+                const { error: deleteError } = await supabase
+                    .from('services')
+                    .delete()
+                    .in('id', idsToDelete);
+
+                if (deleteError) {
+                    console.error('❌ Error al eliminar servicios:', deleteError);
+                    alert('⚠️ No se pudieron eliminar algunos servicios. Es probable que tengan reservas asociadas. Error: ' + deleteError.message);
+                } else {
+                    console.log('✅ Servicios eliminados correctamente');
+                }
+            }
+
+            // 4. Actualizar o Insertar los servicios actuales (Upsert)
+            if (newServices.length > 0) {
+                console.log('💾 Guardando cambios en servicios...');
+                const { error: upsertError } = await supabase
+                    .from('services')
+                    .upsert(newServices, { onConflict: 'id' });
+
+                if (upsertError) {
+                    console.error('❌ Error al guardar servicios:', upsertError);
+                    alert('Error al guardar cambios: ' + upsertError.message);
+                } else {
+                    console.log('✅ Servicios actualizados/creados correctamente');
+                }
+            }
+
+        } catch (err) {
+            console.error('❌ Error inesperado en updateServices:', err);
+            alert('Ocurrió un error inesperado al guardar los servicios.');
+        }
     };
 
     const updatePhone = async (phone: string) => {
