@@ -42,8 +42,8 @@ export function BookingWizard() {
             }
 
             // Assign Random Professional Logic
-            const { toArgentinaDateString } = require('@/utils/date-helpers');
-            const dateStr = toArgentinaDateString(data.date);
+            const { toSpainDateString } = require('@/utils/date-helpers');
+            const dateStr = toSpainDateString(data.date);
 
             // Filter team members who are NOT blocked on this date
             const availableProfessionals = team.filter(pro => {
@@ -59,7 +59,7 @@ export function BookingWizard() {
                 : null;
 
             // 1. Save Booking Locally
-            const finalDateString = `${dateStr}T${data.time}:00-03:00`;
+            const finalDateString = `${dateStr}T${data.time}:00+01:00`;
             const newBooking: any = {
                 id: crypto.randomUUID(),
                 clientName: name,

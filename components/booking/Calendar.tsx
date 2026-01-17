@@ -9,8 +9,9 @@ import {
     isSameDay,
     isPastDate,
     isWeekend,
-    toArgentinaDateString,
-    getArgentinaNow
+    isSpanishHoliday,
+    toSpainDateString,
+    getSpainNow
 } from '@/utils/date-helpers';
 import { useConfig } from '@/context/ConfigContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -46,9 +47,9 @@ export function Calendar({ onSelect, onBack }: CalendarProps) {
 
     const handleDateClick = (day: number) => {
         const date = new Date(year, month, day);
-        const dateStr = toArgentinaDateString(date);
+        const dateStr = toSpainDateString(date);
 
-        if (isPastDate(date) || isWeekend(date) || blockedDates.includes(dateStr)) return;
+        if (isPastDate(date) || isWeekend(date) || isSpanishHoliday(date) || blockedDates.includes(dateStr)) return;
 
         setSelectedDate(date);
         setSelectedTime(null);
@@ -96,13 +97,14 @@ export function Calendar({ onSelect, onBack }: CalendarProps) {
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                     const day = i + 1;
                     const date = new Date(year, month, day);
-                    const dateStr = toArgentinaDateString(date);
+                    const dateStr = toSpainDateString(date);
                     const isSelected = selectedDate && isSameDay(date, selectedDate);
                     const isPast = isPastDate(date);
                     const isWknd = isWeekend(date);
+                    const isHoliday = isSpanishHoliday(date);
                     const isBlocked = blockedDates.includes(dateStr);
-                    const isToday = isSameDay(date, getArgentinaNow());
-                    const isDisabled = isPast || isWknd || isBlocked;
+                    const isToday = isSameDay(date, getSpainNow());
+                    const isDisabled = isPast || isWknd || isHoliday || isBlocked;
 
                     return (
                         <button
@@ -119,7 +121,7 @@ export function Calendar({ onSelect, onBack }: CalendarProps) {
                         `}
                         >
                             {day}
-                            {isWknd && (
+                            {(isWknd || isHoliday) && (
                                 <span className="absolute -bottom-1 text-[8px] font-bold text-rose-200 uppercase tracking-tighter">
                                     {t('calendar.closed')}
                                 </span>

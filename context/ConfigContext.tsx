@@ -256,18 +256,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     // Cloud has data
                     console.log('Datos cargados desde la nube. Verificando integridad...');
 
-                    // Check for legacy data in cloud
-                    const cloudServices = servicesData || [];
-                    const hasValidCategories = cloudServices.length > 0 && cloudServices.every((s: Service) => s.category && s.category !== 'Otros');
-
-                    if (!hasValidCategories) {
-                        console.log('Datos de nube antiguos o incompletos. Forzando actualización...');
-                        setServices(DEFAULT_SERVICES);
-                        // Trigger explicit update to overwrite cloud garbage
-                        updateServices(DEFAULT_SERVICES);
-                    } else {
-                        setServices(cloudServices);
-                    }
+                    // TRUST CLOUD DATA
+                    setServices(servicesData || []);
                     if (faqsData) setFaqs(faqsData);
                     if (teamData) setTeam(teamData);
                     if (bookingsData) {
