@@ -78,6 +78,7 @@ interface ConfigContextType {
     updatePhone: (phone: string) => void;
     updatePin: (pin: string) => void;
     toggleBlockedDate: (date: string) => void;
+    updateBlockedDates: (dates: string[]) => void;
     addProfessionalBlock: (block: ProfessionalBlock) => void;
     removeProfessionalBlock: (id: string) => void;
     updateFaqs: (faqs: FAQ[]) => void;
@@ -340,6 +341,11 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         await supabase.from('app_config').upsert({ key: 'blocked_dates', value: JSON.stringify(newBlocked) });
     };
 
+    const updateBlockedDates = async (newBlocked: string[]) => {
+        setBlockedDates(newBlocked);
+        await supabase.from('app_config').upsert({ key: 'blocked_dates', value: JSON.stringify(newBlocked) });
+    };
+
     const addProfessionalBlock = async (block: ProfessionalBlock) => {
         setProfessionalBlocks(prev => [...prev, block]);
         await supabase.from('professional_blocks').insert(block);
@@ -473,6 +479,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             updatePhone,
             updatePin,
             toggleBlockedDate,
+            updateBlockedDates,
             addProfessionalBlock,
             removeProfessionalBlock,
             updateFaqs,
