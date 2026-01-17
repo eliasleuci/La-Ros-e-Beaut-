@@ -52,7 +52,16 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
 
             <div className="space-y-6">
                 <div>
-                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase tracking-tighter">Nombre del Servicio (ES / EN)</label>
+                    <label className="flex items-center justify-between text-xs font-bold text-stone-400 mb-2 uppercase tracking-tighter">
+                        <span>Nombre del Servicio (ES / EN)</span>
+                        <button
+                            type="button"
+                            onClick={() => setNameEn(name)}
+                            className="text-[10px] text-gold-400 hover:text-gold-500 underline"
+                        >
+                            Copiar ES ➡ EN
+                        </button>
+                    </label>
                     <div className="grid grid-cols-2 gap-4">
                         <input
                             required
@@ -102,7 +111,16 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
                 </div>
 
                 <div>
-                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase tracking-tighter">Descripción (Opcional - ES / EN)</label>
+                    <label className="flex items-center justify-between text-xs font-bold text-stone-400 mb-2 uppercase tracking-tighter">
+                        <span>Descripción (Opcional - ES / EN)</span>
+                        <button
+                            type="button"
+                            onClick={() => setDescriptionEn(description)}
+                            className="text-[10px] text-gold-400 hover:text-gold-500 underline"
+                        >
+                            Copiar ES ➡ EN
+                        </button>
+                    </label>
                     <div className="grid grid-cols-2 gap-4">
                         <input
                             className="w-full px-4 py-2 rounded-xl bg-white border border-stone-200 text-stone-700 placeholder:text-stone-300 focus:border-gold-300 outline-none transition-all"
