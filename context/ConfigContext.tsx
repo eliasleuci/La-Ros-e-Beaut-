@@ -118,7 +118,7 @@ const DEFAULT_SERVICES: Service[] = [
     }
 ];
 
-const DEFAULT_PHONE = '5493513190404';
+const DEFAULT_PHONE = '34617586856';
 const DEFAULT_PIN = '1234';
 const DEFAULT_BLOCKED_DATES: string[] = [];
 const DEFAULT_PROFESSIONAL_BLOCKS: ProfessionalBlock[] = [];
@@ -325,12 +325,21 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         const cleanPhone = phone.replace(/\D/g, '');
         setBusinessPhone(cleanPhone);
         localStorage.setItem('estetica_phone', cleanPhone);
-        await supabase.from('app_config').upsert({ key: 'business_phone', value: cleanPhone });
+
+        const { error } = await supabase
+            .from('app_config')
+            .upsert({ key: 'business_phone', value: cleanPhone }, { onConflict: 'key' });
+
+        if (error) {
+            console.error('Error al actualizar teléfono:', error);
+        } else {
+            console.log('Teléfono actualizado exitosamente:', cleanPhone);
+        }
     };
 
     const updatePin = async (pin: string) => {
         setAdminPin(pin);
-        await supabase.from('app_config').upsert({ key: 'admin_pin', value: pin });
+        await supabase.from('app_config').upsert({ key: 'admin_pin', value: pin }, { onConflict: 'key' });
     };
 
     const toggleBlockedDate = async (date: string) => {
@@ -338,12 +347,12 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             ? blockedDates.filter(d => d !== date)
             : [...blockedDates, date];
         setBlockedDates(newBlocked);
-        await supabase.from('app_config').upsert({ key: 'blocked_dates', value: JSON.stringify(newBlocked) });
+        await supabase.from('app_config').upsert({ key: 'blocked_dates', value: JSON.stringify(newBlocked) }, { onConflict: 'key' });
     };
 
     const updateBlockedDates = async (newBlocked: string[]) => {
         setBlockedDates(newBlocked);
-        await supabase.from('app_config').upsert({ key: 'blocked_dates', value: JSON.stringify(newBlocked) });
+        await supabase.from('app_config').upsert({ key: 'blocked_dates', value: JSON.stringify(newBlocked) }, { onConflict: 'key' });
     };
 
     const addProfessionalBlock = async (block: ProfessionalBlock) => {
