@@ -178,7 +178,7 @@ export default function AdminPage() {
                                                             setIsCreating(true);
                                                             setCreatingInCategory(category);
                                                         }}
-                                                        className="text-[10px] font-bold text-[#C5A02E] hover:text-[#A68626] opacity-0 group-hover/cat:opacity-100 transition-opacity uppercase"
+                                                        className="text-[10px] font-bold text-[#8B7023] hover:text-[#C5A02E] transition-colors uppercase"
                                                     >
                                                         + NUEVO EN {category}
                                                     </button>
@@ -193,16 +193,16 @@ export default function AdminPage() {
                                                                         <h4 className="font-serif font-bold text-lg text-stone-800 tracking-tight">{service.name}</h4>
                                                                         <p className="text-[#C5A02E] font-bold text-sm mt-0.5">€{service.price.toLocaleString()}</p>
                                                                     </div>
-                                                                    <div className="flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <div className="flex gap-4 transition-opacity">
                                                                         <button
                                                                             onClick={() => { setEditingService(service); setIsCreating(false); }}
-                                                                            className="text-xs font-bold text-stone-400 hover:text-stone-800 uppercase tracking-widest"
+                                                                            className="text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-widest"
                                                                         >
                                                                             Editar
                                                                         </button>
                                                                         <button
                                                                             onClick={() => handleDeleteService(service.id)}
-                                                                            className="text-xs font-bold text-stone-300 hover:text-red-500 uppercase tracking-widest"
+                                                                            className="text-xs font-bold text-red-600 hover:text-red-800 uppercase tracking-widest"
                                                                         >
                                                                             Borrar
                                                                         </button>

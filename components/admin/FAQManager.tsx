@@ -138,9 +138,9 @@ export function FAQManager() {
                                     <h4 className="font-bold text-stone-700 mb-1">{faq.question}</h4>
                                     <p className="text-stone-400 text-sm">{faq.answer}</p>
                                 </div>
-                                <div className="flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => setEditingFaq(faq)} className="text-xs font-bold text-[#d4af37] hover:underline">Editar</button>
-                                    <button onClick={() => handleDelete(faq.id)} className="text-xs font-bold text-[#ef4444] hover:underline">Borrar</button>
+                                <div className="flex gap-4 transition-opacity">
+                                    <button onClick={() => setEditingFaq(faq)} className="text-xs font-bold text-[#8B7023] hover:text-[#C5A02E]">Editar</button>
+                                    <button onClick={() => handleDelete(faq.id)} className="text-xs font-bold text-red-600 hover:text-red-800">Borrar</button>
                                 </div>
                             </div>
                         )}

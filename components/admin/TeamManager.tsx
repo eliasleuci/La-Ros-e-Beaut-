@@ -140,16 +140,16 @@ export function TeamManager() {
                                 <p className="text-gold-600 text-xs font-bold">{member.role}</p>
                                 <p className="text-[10px] text-stone-400 font-mono">ID: {member.pin || '0000'}</p>
                             </div>
-                            <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex gap-3 transition-opacity">
                                 <button
                                     onClick={() => handleEdit(member)}
-                                    className="text-xs font-bold text-stone-400 hover:text-stone-800"
+                                    className="text-xs font-bold text-blue-600 hover:text-blue-800"
                                 >
                                     Editar
                                 </button>
                                 <button
                                     onClick={() => handleDelete(member.id)}
-                                    className="text-xs font-bold text-stone-300 hover:text-red-500"
+                                    className="text-xs font-bold text-red-600 hover:text-red-800"
                                 >
                                     Borrar
                                 </button>

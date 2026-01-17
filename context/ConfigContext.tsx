@@ -261,8 +261,13 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     setServices(servicesData || []);
                     if (faqsData) setFaqs(faqsData);
                     if (teamData) setTeam(teamData);
+
+                    console.log('📥 Cargando reservas desde Supabase...');
+                    console.log('Datos crudos de bookings:', bookingsData);
+                    console.log('Cantidad de bookings:', bookingsData?.length || 0);
+
                     if (bookingsData) {
-                        setBookings(bookingsData.map((b: any) => ({
+                        const mappedBookings = bookingsData.map((b: any) => ({
                             ...b,
                             clientName: b.client_name,
                             clientPhone: b.client_phone,
@@ -271,7 +276,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                             paymentMethod: b.payment_method,
                             professionalId: b.professional_id,
                             createdAt: b.created_at
-                        })));
+                        }));
+                        console.log('Bookings mapeados:', mappedBookings);
+                        setBookings(mappedBookings);
                     }
                     if (reviewsData) setReviews(reviewsData.map((r: any) => ({ ...r, clientName: r.client_name })));
                     if (clinicalData) {
