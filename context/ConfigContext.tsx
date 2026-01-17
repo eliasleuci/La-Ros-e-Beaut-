@@ -171,7 +171,7 @@ const DEFAULT_REVIEWS: Review[] = [];
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
 export function ConfigProvider({ children }: { children: React.ReactNode }) {
-    const [services, setServices] = useState<Service[]>(DEFAULT_SERVICES);
+    const [services, setServices] = useState<Service[]>([]);
     const [businessPhone, setBusinessPhone] = useState(DEFAULT_PHONE);
     const [adminPin, setAdminPin] = useState(DEFAULT_PIN);
     const [blockedDates, setBlockedDates] = useState<string[]>(DEFAULT_BLOCKED_DATES);
