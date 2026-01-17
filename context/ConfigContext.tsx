@@ -258,7 +258,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
                     // Check for legacy data in cloud
                     const cloudServices = servicesData || [];
-                    const hasValidCategories = cloudServices.length > 0 && cloudServices.every(s => s.category && s.category !== 'Otros');
+                    const hasValidCategories = cloudServices.length > 0 && cloudServices.every((s: Service) => s.category && s.category !== 'Otros');
 
                     if (!hasValidCategories) {
                         console.log('Datos de nube antiguos o incompletos. Forzando actualización...');
@@ -271,7 +271,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     if (faqsData) setFaqs(faqsData);
                     if (teamData) setTeam(teamData);
                     if (bookingsData) {
-                        setBookings(bookingsData.map(b => ({
+                        setBookings(bookingsData.map((b: any) => ({
                             ...b,
                             clientName: b.client_name,
                             clientPhone: b.client_phone,
@@ -282,9 +282,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                             createdAt: b.created_at
                         })));
                     }
-                    if (reviewsData) setReviews(reviewsData.map(r => ({ ...r, clientName: r.client_name })));
+                    if (reviewsData) setReviews(reviewsData.map((r: any) => ({ ...r, clientName: r.client_name })));
                     if (clinicalData) {
-                        setClinicalRecords(clinicalData.map(c => ({
+                        setClinicalRecords(clinicalData.map((c: any) => ({
                             ...c,
                             clientName: c.client_name,
                             clientPhone: c.client_phone,
@@ -294,16 +294,16 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     }
 
                     if (configData) {
-                        const adminPinVal = configData.find(c => c.key === 'admin_pin')?.value;
-                        const phoneVal = configData.find(c => c.key === 'business_phone')?.value;
-                        const blockedDatesVal = configData.find(c => c.key === 'blocked_dates')?.value;
+                        const adminPinVal = configData.find((c: any) => c.key === 'admin_pin')?.value;
+                        const phoneVal = configData.find((c: any) => c.key === 'business_phone')?.value;
+                        const blockedDatesVal = configData.find((c: any) => c.key === 'blocked_dates')?.value;
                         if (adminPinVal) setAdminPin(adminPinVal);
                         if (phoneVal) setBusinessPhone(phoneVal.replace(/\D/g, ''));
                         if (blockedDatesVal) setBlockedDates(JSON.parse(blockedDatesVal));
                     }
 
                     if (proBlockedData) setProfessionalBlocks(proBlockedData);
-                    if (galleryData) setGalleryImages(galleryData.map(g => g.image_url));
+                    if (galleryData) setGalleryImages(galleryData.map((g: any) => g.image_url));
                 }
 
             } catch (error) {
