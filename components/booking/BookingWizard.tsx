@@ -31,7 +31,7 @@ export function BookingWizard() {
         setStep('contact');
     };
 
-    const handleContactSubmit = (name: string, phone: string, paymentMethod: 'cash' | 'transfer') => {
+    const handleContactSubmit = (name: string, phone: string, paymentMethod: 'cash' | 'card') => {
         if (data.service && data.date && data.time) {
             // CRITICAL: Double check if it's a weekend at submission time
             const { isWeekend } = require('@/utils/date-helpers');
