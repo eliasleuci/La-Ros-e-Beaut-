@@ -47,11 +47,11 @@ export default function Home() {
 
       {/* RIGHT COLUMN: Scrollable Content */}
       <div className="w-full md:w-1/2 lg:w-7/12 md:ml-auto bg-white min-h-screen">
-        <div className="p-6 md:p-20 max-w-3xl mx-auto space-y-20">
+        <div className="px-6 py-12 md:p-20 max-w-3xl mx-auto space-y-20">
 
           {/* Booking Section */}
           <section id="book">
-            <h2 className="text-sm font-bold tracking-[0.2em] text-stone-400 uppercase mb-8 text-center md:text-left">{t('common.booking')}</h2>
+            <h2 className="text-sm font-bold tracking-widest md:tracking-[0.2em] text-stone-400 uppercase mb-8 text-center md:text-left">{t('common.booking')}</h2>
             <BookingWizard />
           </section>
 
