@@ -66,18 +66,30 @@ export function BookingList() {
 
     const targetDateBookings = bookings.filter(b => b.date.startsWith(selectedSummaryDate) && (b.status === 'confirmed' || b.status === 'attended'));
 
-    // Debug logging
-    console.log('📊 Arqueo de Caja - Debug Info:');
+    // Debug logging with table for better visibility
+    console.log('📊 ===== ARQUEO DE CAJA DEBUG =====');
     console.log('Fecha seleccionada:', selectedSummaryDate);
-    console.log('Total de reservas:', bookings.length);
-    console.log('Reservas del día (confirmed/attended):', targetDateBookings.length);
-    console.log('Detalles:', targetDateBookings.map(b => ({
-        cliente: b.clientName,
-        precio: b.price,
-        metodo: b.paymentMethod,
-        estado: b.status,
-        fecha: b.date
-    })));
+    console.log('Total de reservas en sistema:', bookings.length);
+
+    if (bookings.length > 0) {
+        console.table(bookings.map(b => ({
+            Cliente: b.clientName,
+            Fecha: b.date,
+            'Fecha (primeros 10)': b.date.substring(0, 10),
+            Estado: b.status,
+            Precio: b.price,
+            Pago: b.paymentMethod
+        })));
+    }
+
+    console.log('Reservas filtradas (confirmed/attended del día):', targetDateBookings.length);
+    if (targetDateBookings.length > 0) {
+        console.table(targetDateBookings.map(b => ({
+            Cliente: b.clientName,
+            Precio: b.price,
+            Pago: b.paymentMethod
+        })));
+    }
 
     const cashTotal = targetDateBookings
         .filter(b => b.paymentMethod === 'cash')

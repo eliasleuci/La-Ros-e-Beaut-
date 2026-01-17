@@ -389,7 +389,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
     const addBooking = async (booking: Booking) => {
         setBookings(prev => [booking, ...prev]);
-        await supabase.from('bookings').insert({
+
+        const { data, error } = await supabase.from('bookings').insert({
             id: booking.id,
             client_name: booking.clientName,
             client_phone: booking.clientPhone,
@@ -402,6 +403,13 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             status: booking.status,
             professional_id: booking.professionalId
         });
+
+        if (error) {
+            console.error('❌ Error al guardar reserva en Supabase:', error);
+            console.log('Datos que se intentaron guardar:', booking);
+        } else {
+            console.log('✅ Reserva guardada exitosamente en Supabase:', data);
+        }
     };
 
     const updateBookingStatus = async (id: string, status: Booking['status']) => {
