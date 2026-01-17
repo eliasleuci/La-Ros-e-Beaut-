@@ -322,8 +322,12 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
     const updateServices = async (newServices: Service[]) => {
         setServices(newServices);
-        await supabase.from('services').delete().not('id', 'is', null);
-        await supabase.from('services').insert(newServices);
+        const { error: delError } = await supabase.from('services').delete().not('id', 'is', null);
+        if (delError) console.error('Error al limpiar servicios:', delError);
+
+        const { error: insError } = await supabase.from('services').insert(newServices);
+        if (insError) console.error('Error al insertar servicios:', insError);
+        else console.log('Servicios sincronizados exitosamente');
     };
 
     const updatePhone = async (phone: string) => {
@@ -364,8 +368,12 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
     const updateGallery = async (images: string[]) => {
         setGalleryImages(images);
-        await supabase.from('gallery').delete().not('id', 'is', null);
-        await supabase.from('gallery').insert(images.map(url => ({ image_url: url })));
+        const { error: delError } = await supabase.from('gallery').delete().not('id', 'is', null);
+        if (delError) console.error('Error al limpiar galería:', delError);
+
+        const { error: insError } = await supabase.from('gallery').insert(images.map(url => ({ image_url: url })));
+        if (insError) console.error('Error al insertar en galería:', insError);
+        else console.log('Galería sincronizada exitosamente');
     };
 
     const updateTeam = async (newTeam: TeamMember[]) => {
