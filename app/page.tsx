@@ -31,7 +31,7 @@ export default function Home() {
           <LanguageSwitcher />
         </div>
 
-        <div className="relative z-10 text-center space-y-6 max-w-md -mt-32">
+        <div className="relative z-10 text-center space-y-6 max-w-md mt-0 md:-mt-32">
           <div className="w-16 h-[1px] bg-stone-500/80 mx-auto mb-10"></div>
           <h1 className="text-5xl md:text-7xl font-serif text-stone-800 leading-[0.9] tracking-tighter drop-shadow-md">
             La Rosée<br /><span className="text-3xl md:text-4xl italic text-stone-600/80 drop-shadow-sm mt-4 block font-light">Beauté</span>
