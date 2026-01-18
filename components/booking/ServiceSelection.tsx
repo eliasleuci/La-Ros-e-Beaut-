@@ -104,8 +104,17 @@ export function ServiceSelection({ onSelect }: { onSelect: (service: Service) =>
                                                 )}
 
                                             </div>
-                                            <div className="text-[#C5A02E] font-semibold whitespace-nowrap text-lg">
-                                                €{service.price.toLocaleString()}
+                                            <div className="text-right">
+                                                {service.promo_price ? (
+                                                    <>
+                                                        <span className="block text-xs text-stone-400 line-through decoration-red-400 decoration-2">€{service.price}</span>
+                                                        <span className="block text-[#C5A02E] font-bold text-lg">€{service.promo_price}</span>
+                                                    </>
+                                                ) : (
+                                                    <div className="text-[#C5A02E] font-semibold whitespace-nowrap text-lg">
+                                                        €{service.price.toLocaleString()}
+                                                    </div>
+                                                )}
                                             </div>
                                         </button>
                                     ))}

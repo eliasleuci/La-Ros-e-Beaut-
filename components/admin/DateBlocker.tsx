@@ -5,7 +5,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 
 export function DateBlocker() {
-    const { blockedDates, toggleBlockedDate, updateBlockedDates, team, professionalBlocks, addProfessionalBlock, removeProfessionalBlock } = useConfig();
+    const { blockedDates, toggleBlockedDate, updateBlockedDates, team, professionalBlocks, addProfessionalBlock, removeProfessionalBlock, importHolidays } = useConfig();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedProId, setSelectedProId] = useState<string>('global'); // 'global' or pro ID
     const [rangeMode, setRangeMode] = useState(false);
@@ -136,6 +136,13 @@ export function DateBlocker() {
                             </select>
                         </div>
                     )}
+
+                    <button
+                        onClick={importHolidays}
+                        className="px-3 py-2 rounded-lg text-xs font-bold uppercase bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-all"
+                    >
+                        Importar Feriados 2026
+                    </button>
                     {selectedProId === 'global' && (
                         <button
                             onClick={() => {
@@ -143,8 +150,8 @@ export function DateBlocker() {
                                 setRangeStart(null);
                             }}
                             className={`px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all ${rangeMode
-                                    ? 'bg-[#C5A02E] text-white'
-                                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                                ? 'bg-[#C5A02E] text-white'
+                                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                                 }`}
                         >
                             {rangeMode ? '✓ Modo Rango' : 'Modo Rango'}
@@ -232,6 +239,6 @@ export function DateBlocker() {
                     </div>
                 </div>
             </div>
-        </Card>
+        </Card >
     );
 }

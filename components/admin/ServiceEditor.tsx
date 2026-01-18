@@ -17,6 +17,8 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
     const [category, setCategory] = useState(defaultCategory || '');
     const [description, setDescription] = useState('');
     const [descriptionEn, setDescriptionEn] = useState('');
+    const [promoPrice, setPromoPrice] = useState('');
+    const [discountPercent, setDiscountPercent] = useState('');
 
     useEffect(() => {
         if (initialService) {
@@ -27,6 +29,16 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
             setCategory(initialService.category || 'Otros');
             setDescription(initialService.description || '');
             setDescriptionEn(initialService.description_en || '');
+            if (initialService.promo_price) {
+                setPromoPrice(initialService.promo_price.toString());
+                const original = initialService.price;
+                const promo = initialService.promo_price;
+                const percent = Math.round(((original - promo) / original) * 100);
+                setDiscountPercent(percent.toString());
+            } else {
+                setPromoPrice('');
+                setDiscountPercent('');
+            }
         } else if (defaultCategory) {
             setCategory(defaultCategory);
         }
@@ -42,7 +54,8 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
             duration,
             category: category || 'Otros',
             description,
-            description_en: descriptionEn
+            description_en: descriptionEn,
+            promo_price: promoPrice ? Number(promoPrice) : null
         });
     };
 
@@ -145,7 +158,15 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
                             type="number"
                             className="w-full px-4 py-2 rounded-xl bg-white border border-stone-200 text-stone-700 placeholder:text-stone-300 focus:border-gold-300 outline-none transition-all"
                             value={price}
-                            onChange={e => setPrice(e.target.value)}
+                            onChange={e => {
+                                setPrice(e.target.value);
+                                if (discountPercent && e.target.value) {
+                                    const p = Number(e.target.value);
+                                    const d = Number(discountPercent);
+                                    const discounted = p - (p * (d / 100));
+                                    setPromoPrice(Math.round(discounted).toString());
+                                }
+                            }}
                         />
                     </div>
                     <div>
@@ -160,7 +181,49 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-6 border-t border-stone-100">
+                <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 mt-6">
+                    <label className="block text-xs font-bold text-orange-400 mb-3 uppercase tracking-tighter flex items-center gap-2">
+                        <span>🏷️ Promoción / Descuento (Opcional)</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[10px] font-bold text-stone-400 mb-1 uppercase">Descuento %</label>
+                            <input
+                                type="number"
+                                placeholder="Ej: 20"
+                                className="w-full px-4 py-2 rounded-xl bg-white border border-orange-200 text-orange-600 placeholder:text-orange-200 focus:border-orange-400 outline-none transition-all font-bold"
+                                value={discountPercent}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    setDiscountPercent(val);
+                                    if (val && price) {
+                                        const p = Number(price);
+                                        const d = Number(val);
+                                        const discounted = p - (p * (d / 100));
+                                        setPromoPrice(Math.round(discounted).toString());
+                                    } else if (!val) {
+                                        setPromoPrice('');
+                                    }
+                                }}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold text-stone-400 mb-1 uppercase">Precio Final (€)</label>
+                            <input
+                                type="number"
+                                placeholder="Precio con descuento"
+                                className="w-full px-4 py-2 rounded-xl bg-white border border-orange-200 text-orange-600 placeholder:text-orange-200 focus:border-orange-400 outline-none transition-all font-bold"
+                                value={promoPrice}
+                                onChange={e => {
+                                    setPromoPrice(e.target.value);
+                                    setDiscountPercent('');
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-6 border-t border-stone-100 mt-6">
                     <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
                     <Button type="submit">Guardar Cambios</Button>
                 </div>

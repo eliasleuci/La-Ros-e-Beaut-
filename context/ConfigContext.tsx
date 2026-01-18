@@ -117,6 +117,7 @@ interface ConfigContextType {
     addExpense: (expense: Expense) => void;
     updateExpense: (expense: Expense) => void;
     deleteExpense: (id: string) => void;
+    importHolidays: () => void;
     resetToDefaults: () => void;
 }
 
@@ -167,6 +168,22 @@ const DEFAULT_GALLERY: string[] = [];
 const DEFAULT_TEAM: TeamMember[] = [];
 const DEFAULT_BOOKINGS: Booking[] = [];
 const DEFAULT_REVIEWS: Review[] = [];
+
+const MARBELLA_HOLIDAYS_2026 = [
+    '2026-01-01', // Año Nuevo
+    '2026-01-06', // Epifanía
+    '2026-02-28', // Día de Andalucía
+    '2026-04-02', // Jueves Santo
+    '2026-04-03', // Viernes Santo
+    '2026-05-01', // Fiesta del Trabajo
+    '2026-06-11', // San Bernabé (Local)
+    '2026-08-15', // Asunción
+    '2026-10-12', // Fiesta Nacional
+    '2026-10-19', // San Pedro de Alcántara (Local)
+    '2026-11-02', // Todos los Santos (trasladado)
+    '2026-12-08', // Inmaculada
+    '2026-12-25', // Navidad
+];
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
@@ -631,6 +648,13 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         await supabase.from('expenses').delete().eq('id', id);
     };
 
+    const importHolidays = async () => {
+        const newDates = Array.from(new Set([...blockedDates, ...MARBELLA_HOLIDAYS_2026]));
+        setBlockedDates(newDates);
+        await supabase.from('app_config').upsert({ key: 'blocked_dates', value: JSON.stringify(newDates) }, { onConflict: 'key' });
+        alert(`Se han importado ${MARBELLA_HOLIDAYS_2026.length} feriados de Marbella 2026.`);
+    };
+
     const resetToDefaults = () => {
         setServices(DEFAULT_SERVICES);
         setBusinessPhone(DEFAULT_PHONE);
@@ -682,6 +706,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             addExpense,
             updateExpense,
             deleteExpense,
+            importHolidays,
             resetToDefaults
         }}>
             {children}
