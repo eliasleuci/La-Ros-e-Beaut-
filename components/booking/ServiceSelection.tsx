@@ -12,6 +12,7 @@ export interface Service {
     description?: string; // ES
     name_en?: string;
     description_en?: string;
+    promo_price?: number | null;
 }
 
 export function ServiceSelection({ onSelect }: { onSelect: (service: Service) => void }) {
