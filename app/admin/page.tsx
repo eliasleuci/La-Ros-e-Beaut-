@@ -25,6 +25,7 @@ export default function AdminPage() {
     const [phoneInput, setPhoneInput] = useState(businessPhone);
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
     const [creatingInCategory, setCreatingInCategory] = useState<string | null>(null);
+    const [editingCategory, setEditingCategory] = useState<{ es: string, en: string, original: string } | null>(null);
 
     // Synchronize local input with context value when it loads
     React.useEffect(() => {
@@ -77,6 +78,26 @@ export default function AdminPage() {
             updateServices(services.filter(s => s.id !== id));
             setShowServices(true);
         }
+    };
+    const handleRenameCategory = () => {
+        if (!editingCategory) return;
+        const { es, en, original } = editingCategory;
+
+        if (!es.trim()) {
+            alert('El nombre en castellano es obligatorio');
+            return;
+        }
+
+        const updatedServices = services.map(s => {
+            if (s.category === original) {
+                return { ...s, category: es, category_en: en };
+            }
+            return s;
+        });
+
+        updateServices(updatedServices);
+        setEditingCategory(null);
+        alert('Categoría actualizada correctamente para todos los servicios');
     };
 
     // Group services by category
@@ -172,18 +193,58 @@ export default function AdminPage() {
                                                         <span className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
                                                         {category}
                                                     </h3>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setEditingService(null);
-                                                            setIsCreating(true);
-                                                            setCreatingInCategory(category);
-                                                        }}
-                                                        className="text-[10px] font-bold text-[#8B7023] hover:text-[#C5A02E] transition-colors uppercase"
-                                                    >
-                                                        + NUEVO EN {category}
-                                                    </button>
+                                                    <div className="flex gap-4">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const firstService = items.find(s => s.category_en);
+                                                                setEditingCategory({
+                                                                    es: category,
+                                                                    en: firstService?.category_en || '',
+                                                                    original: category
+                                                                });
+                                                            }}
+                                                            className="text-[10px] font-bold text-blue-500 hover:text-blue-700 transition-colors uppercase"
+                                                        >
+                                                            Traducir Categoría
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingService(null);
+                                                                setIsCreating(true);
+                                                                setCreatingInCategory(category);
+                                                            }}
+                                                            className="text-[10px] font-bold text-[#8B7023] hover:text-[#C5A02E] transition-colors uppercase"
+                                                        >
+                                                            + NUEVO EN {category}
+                                                        </button>
+                                                    </div>
                                                 </div>
+
+                                                {editingCategory?.original === category && (
+                                                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col gap-3 animate-in slide-in-from-top-2">
+                                                        <p className="text-[10px] font-bold text-blue-400 uppercase">Renombrar / Traducir Categoría</p>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <input
+                                                                className="px-3 py-1.5 text-sm rounded-lg border border-blue-200 outline-none"
+                                                                placeholder="Nombre ES"
+                                                                value={editingCategory.es}
+                                                                onChange={e => setEditingCategory({ ...editingCategory, es: e.target.value })}
+                                                            />
+                                                            <input
+                                                                className="px-3 py-1.5 text-sm rounded-lg border border-blue-200 outline-none"
+                                                                placeholder="Nombre EN"
+                                                                value={editingCategory.en}
+                                                                onChange={e => setEditingCategory({ ...editingCategory, en: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div className="flex justify-end gap-2">
+                                                            <button onClick={() => setEditingCategory(null)} className="text-[10px] font-bold text-stone-400 uppercase">Cancelar</button>
+                                                            <button onClick={handleRenameCategory} className="text-[10px] font-bold text-blue-600 uppercase">Guardar en todos</button>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 {isOpen && (
                                                     <div className="grid grid-cols-1 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">

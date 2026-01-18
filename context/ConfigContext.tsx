@@ -422,16 +422,17 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
             // 4. Actualizar o Insertar los servicios actuales (Upsert)
             if (newServices.length > 0) {
-                console.log('💾 Guardando cambios en servicios...');
-                const { error: upsertError } = await supabase
+                console.log('💾 Intentando guardar en Supabase:', newServices);
+                const { error: upsertError, data: upsertData } = await supabase
                     .from('services')
-                    .upsert(newServices, { onConflict: 'id' });
+                    .upsert(newServices, { onConflict: 'id' })
+                    .select(); // Request back the data to verify what was saved
 
                 if (upsertError) {
                     console.error('❌ Error al guardar servicios:', upsertError);
                     alert('Error al guardar cambios: ' + upsertError.message);
                 } else {
-                    console.log('✅ Servicios actualizados/creados correctamente');
+                    console.log('✅ Servicios actualizados correctamente en DB:', upsertData);
                 }
             }
 

@@ -15,6 +15,7 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
     const [price, setPrice] = useState('');
     const [duration, setDuration] = useState('');
     const [category, setCategory] = useState(defaultCategory || '');
+    const [categoryEn, setCategoryEn] = useState('');
     const [description, setDescription] = useState('');
     const [descriptionEn, setDescriptionEn] = useState('');
     const [promoPrice, setPromoPrice] = useState('');
@@ -27,6 +28,7 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
             setPrice(initialService.price.toString());
             setDuration(initialService.duration);
             setCategory(initialService.category || 'Otros');
+            setCategoryEn(initialService.category_en || '');
             setDescription(initialService.description || '');
             setDescriptionEn(initialService.description_en || '');
             if (initialService.promo_price) {
@@ -41,6 +43,7 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
             }
         } else if (defaultCategory) {
             setCategory(defaultCategory);
+            // If creating in an existing category, try to find its EN counterpart
         }
     }, [initialService, defaultCategory]);
 
@@ -53,6 +56,7 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
             price: Number(price),
             duration,
             category: category || 'Otros',
+            category_en: categoryEn,
             description,
             description_en: descriptionEn,
             promo_price: promoPrice ? Number(promoPrice) : null
@@ -93,8 +97,23 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
                 </div>
 
                 <div>
-                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase tracking-tighter">Categoría</label>
-                    <div className="space-y-2">
+                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase tracking-tighter">Categoría (ES / EN)</label>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <input
+                                list="categories"
+                                className="w-full px-4 py-2 rounded-xl bg-white border border-stone-200 text-stone-700 placeholder:text-stone-300 focus:border-gold-300 outline-none transition-all"
+                                placeholder="ES: Micropigmentación"
+                                value={category}
+                                onChange={e => setCategory(e.target.value)}
+                            />
+                            <input
+                                className="w-full px-4 py-2 rounded-xl bg-white border border-stone-200 text-stone-700 placeholder:text-stone-300 focus:border-gold-300 outline-none transition-all"
+                                placeholder="EN: Micropigmentation"
+                                value={categoryEn}
+                                onChange={e => setCategoryEn(e.target.value)}
+                            />
+                        </div>
                         <select
                             className="w-full px-4 py-2 rounded-xl bg-white border border-stone-200 text-stone-700 focus:border-gold-300 outline-none appearance-none cursor-pointer"
                             value={category}
@@ -107,13 +126,6 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
                             <option value="Tratamiento Corporal">Tratamiento Corporal</option>
                             <option value="Otros">Otros</option>
                         </select>
-                        <input
-                            list="categories"
-                            className="w-full px-4 py-2 rounded-xl bg-white border border-stone-200 text-stone-700 placeholder:text-stone-300 focus:border-gold-300 outline-none transition-all"
-                            placeholder="O escribir nueva categoría..."
-                            value={category}
-                            onChange={e => setCategory(e.target.value)}
-                        />
                         <datalist id="categories">
                             <option value="Micropigmentación" />
                             <option value="Lifting y Cejas" />

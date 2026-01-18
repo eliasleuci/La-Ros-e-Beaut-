@@ -9,6 +9,7 @@ export interface Service {
     price: number;
     duration: string;
     category: string;
+    category_en?: string;
     description?: string; // ES
     name_en?: string;
     description_en?: string;
@@ -39,7 +40,13 @@ export function ServiceSelection({ onSelect }: { onSelect: (service: Service) =>
         'Otros'
     ];
 
-    const getTranslatedCategory = (cat: string) => {
+    const getTranslatedCategory = (cat: string, items: Service[]) => {
+        // First check if any service in this category has a category_en set
+        if (language === 'en') {
+            const firstWithEn = items.find(s => s.category_en);
+            if (firstWithEn?.category_en) return firstWithEn.category_en;
+        }
+
         if (cat === 'Micropigmentación') return t('common.categories.micropig');
         if (cat === 'Lifting y Cejas') return t('common.categories.lifting');
         if (cat === 'Tratamiento Facial') return t('common.categories.facial');
@@ -77,7 +84,7 @@ export function ServiceSelection({ onSelect }: { onSelect: (service: Service) =>
                             className={`w-full flex items-center justify-between p-5 text-left transition-colors ${openCategory === category ? 'bg-stone-50 text-stone-900' : 'bg-white text-stone-700 hover:bg-stone-50'
                                 }`}
                         >
-                            <span className="font-serif text-xl font-medium">{getTranslatedCategory(category)}</span>
+                            <span className="font-serif text-xl font-medium">{getTranslatedCategory(category, groupedServices[category])}</span>
                             {openCategory === category ? (
                                 <ChevronUp className="w-5 h-5 text-stone-400" />
                             ) : (
