@@ -82,6 +82,8 @@ export interface Expense {
 interface ConfigContextType {
     services: Service[];
     businessPhone: string;
+    instagramLink: string;
+    categoryOrder: string[];
     adminPin: string;
     blockedDates: string[];
     professionalBlocks: ProfessionalBlock[];
@@ -95,6 +97,8 @@ interface ConfigContextType {
     expenses: Expense[];
     updateServices: (services: Service[]) => void;
     updatePhone: (phone: string) => void;
+    updateInstagramLink: (link: string) => void;
+    updateCategoryOrder: (order: string[]) => void;
     updatePin: (pin: string) => void;
     toggleBlockedDate: (date: string) => void;
     updateBlockedDates: (dates: string[]) => void;
@@ -145,6 +149,7 @@ const DEFAULT_SERVICES: Service[] = [
 ];
 
 const DEFAULT_PHONE = '34617586856';
+const DEFAULT_INSTAGRAM = 'https://www.instagram.com/la_rosee_beaute/';
 const DEFAULT_PIN = '1234';
 const DEFAULT_BLOCKED_DATES: string[] = [];
 const DEFAULT_PROFESSIONAL_BLOCKS: ProfessionalBlock[] = [];
@@ -190,6 +195,8 @@ const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 export function ConfigProvider({ children }: { children: React.ReactNode }) {
     const [services, setServices] = useState<Service[]>([]);
     const [businessPhone, setBusinessPhone] = useState(DEFAULT_PHONE);
+    const [instagramLink, setInstagramLink] = useState(DEFAULT_INSTAGRAM);
+    const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
     const [adminPin, setAdminPin] = useState(DEFAULT_PIN);
     const [blockedDates, setBlockedDates] = useState<string[]>(DEFAULT_BLOCKED_DATES);
     const [professionalBlocks, setProfessionalBlocks] = useState<ProfessionalBlock[]>(DEFAULT_PROFESSIONAL_BLOCKS);
@@ -223,7 +230,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     { data: expenseCategoriesData },
                     { data: expensesData }
                 ] = await Promise.all([
-                    supabase.from('services').select('*'),
+                    supabase.from('services').select('*').order('sort_order', { ascending: true }),
                     supabase.from('app_config').select('*'),
                     supabase.from('faqs').select('*'),
                     supabase.from('team').select('*'),
@@ -236,12 +243,14 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     supabase.from('expenses').select('*').order('created_at', { ascending: false })
                 ]);
 
-                // Check if Cloud is empty
-                // We consider cloud NOT empty if there are services OR if there is config data (meaning it was already initialized)
-                const cloudIsReady = (servicesData && servicesData.length > 0) || (configData && configData.length > 0) || (faqsData && faqsData.length > 0);
+                // Improved Cloud-Ready check:
+                // Only trigger migration if cloud is definitively empty AND config doesn't exist.
+                // If it's just a network error (data is null), we should NOT assume it's empty.
+                const cloudIsInitialized = (configData && configData.length > 0);
+                const cloudIsEmpty = (servicesData && servicesData.length === 0) && !cloudIsInitialized;
 
-                if (!cloudIsReady) {
-                    console.log('Cloud está vacío o incompleto. Buscando datos locales para migrar...');
+                if (cloudIsEmpty) {
+                    console.log('Cloud detectado como nuevo. Buscando datos locales para migrar...');
 
                     const savedServices = localStorage.getItem('estetica_services');
                     const savedBookings = localStorage.getItem('estetica_bookings');
@@ -270,8 +279,12 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
                     // Upload to Cloud so it stays there
                     console.log('Subiendo datos iniciales a la nube...');
-                    await supabase.from('services').delete().not('id', 'is', null); // Clear old garbage if any
-                    if (servicesToUse.length > 0) await supabase.from('services').insert(servicesToUse);
+                    // REMOVED: Nuclear deletion "delete().not(...)" - too dangerous.
+
+                    if (servicesToUse.length > 0) {
+                        // Use upsert instead of insert to avoid duplicate key errors during migration
+                        await supabase.from('services').upsert(servicesToUse);
+                    }
                     if (faqsToUse.length > 0) await supabase.from('faqs').insert(faqsToUse);
                     await supabase.from('app_config').upsert({ key: 'business_phone', value: phoneToUse });
                     if (teamToUse.length > 0) await supabase.from('team').insert(teamToUse);
@@ -343,9 +356,13 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     if (configData) {
                         const adminPinVal = configData.find((c: any) => c.key === 'admin_pin')?.value;
                         const phoneVal = configData.find((c: any) => c.key === 'business_phone')?.value;
+                        const instagramVal = configData.find((c: any) => c.key === 'instagram_link')?.value;
+                        const categoryOrderVal = configData.find((c: any) => c.key === 'category_order')?.value;
                         const blockedDatesVal = configData.find((c: any) => c.key === 'blocked_dates')?.value;
                         if (adminPinVal) setAdminPin(adminPinVal);
                         if (phoneVal) setBusinessPhone(phoneVal.replace(/\D/g, ''));
+                        if (instagramVal) setInstagramLink(instagramVal);
+                        if (categoryOrderVal) setCategoryOrder(JSON.parse(categoryOrderVal));
                         if (blockedDatesVal) setBlockedDates(JSON.parse(blockedDatesVal));
                     }
 
@@ -381,6 +398,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
     const updateServices = async (newServices: Service[]) => {
         setServices(newServices);
+        // Keep localStorage as a rescue fallback, but cloud is primary
+        localStorage.setItem('estetica_services', JSON.stringify(newServices));
 
         console.log('🔄 Sincronizando servicios con una estrategia diferencial...');
 
@@ -437,7 +456,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             }
 
             // 5. RE-FETCH FINAL (Para asegurar que lo que ve el usuario es lo real)
-            const { data: finalData } = await supabase.from('services').select('*');
+            const { data: finalData } = await supabase.from('services').select('*').order('sort_order', { ascending: true });
             if (finalData) {
                 console.log('🔄 Sincronización final: actualizando estado local desde DB');
                 setServices(finalData);
@@ -463,6 +482,20 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         } else {
             console.log('Teléfono actualizado exitosamente:', cleanPhone);
         }
+    };
+
+    const updateInstagramLink = async (link: string) => {
+        setInstagramLink(link);
+        await supabase
+            .from('app_config')
+            .upsert({ key: 'instagram_link', value: link }, { onConflict: 'key' });
+    };
+
+    const updateCategoryOrder = async (order: string[]) => {
+        setCategoryOrder(order);
+        await supabase
+            .from('app_config')
+            .upsert({ key: 'category_order', value: JSON.stringify(order) }, { onConflict: 'key' });
     };
 
     const updatePin = async (pin: string) => {
@@ -672,6 +705,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         <ConfigContext.Provider value={{
             services,
             businessPhone,
+            instagramLink,
+            categoryOrder,
             adminPin,
             blockedDates,
             professionalBlocks,
@@ -685,6 +720,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             expenses,
             updateServices,
             updatePhone,
+            updateInstagramLink,
+            updateCategoryOrder,
             updatePin,
             toggleBlockedDate,
             updateBlockedDates,

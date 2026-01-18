@@ -15,7 +15,7 @@ import { ReviewManager } from '@/components/admin/ReviewManager';
 import { ExpenseManager } from '@/components/admin/ExpenseManager';
 
 export default function AdminPage() {
-    const { services, businessPhone, adminPin, updateServices, updatePhone } = useConfig();
+    const { services, businessPhone, instagramLink, categoryOrder, adminPin, updateServices, updatePhone, updateInstagramLink, updateCategoryOrder } = useConfig();
 
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [pinInput, setPinInput] = useState('');
@@ -23,6 +23,7 @@ export default function AdminPage() {
     const [isCreating, setIsCreating] = useState(false);
     const [showServices, setShowServices] = useState(false);
     const [phoneInput, setPhoneInput] = useState(businessPhone);
+    const [instagramInput, setInstagramInput] = useState(instagramLink);
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
     const [creatingInCategory, setCreatingInCategory] = useState<string | null>(null);
     const [editingCategory, setEditingCategory] = useState<{ es: string, en: string, original: string } | null>(null);
@@ -30,7 +31,8 @@ export default function AdminPage() {
     // Synchronize local input with context value when it loads
     React.useEffect(() => {
         setPhoneInput(businessPhone);
-    }, [businessPhone]);
+        setInstagramInput(instagramLink);
+    }, [businessPhone, instagramLink]);
 
     // Auto-show services if editing or creating
     React.useEffect(() => {
@@ -38,6 +40,26 @@ export default function AdminPage() {
             setShowServices(true);
         }
     }, [editingService, isCreating]);
+
+    // Initialize categoryOrder if empty
+    React.useEffect(() => {
+        if (categoryOrder.length === 0 && services.length > 0) {
+            const cats = Array.from(new Set(services.map(s => s.category || 'Otros')));
+            // Try to maintain a decent default order
+            const defaultOrder = [
+                'Micropigmentación',
+                'Lifting y Cejas',
+                'Tratamiento Facial',
+                'Tratamiento Corporal',
+                ...cats.filter(c => !['Micropigmentación', 'Lifting y Cejas', 'Tratamiento Facial', 'Tratamiento Corporal', 'Otros'].includes(c)),
+                'Otros'
+            ].filter(c => cats.includes(c));
+
+            if (defaultOrder.length > 0) {
+                updateCategoryOrder(defaultOrder);
+            }
+        }
+    }, [services, categoryOrder, updateCategoryOrder]);
 
     // Persist Session
     React.useEffect(() => {
@@ -100,6 +122,61 @@ export default function AdminPage() {
         alert('Categoría actualizada correctamente para todos los servicios');
     };
 
+    const handleMoveService = (serviceId: string, direction: 'up' | 'down') => {
+        const serviceIndex = services.findIndex(s => s.id === serviceId);
+        if (serviceIndex === -1) return;
+
+        const currentService = services[serviceIndex];
+        const categoryServices = services.filter(s => s.category === currentService.category);
+        const indexInCategory = categoryServices.findIndex(s => s.id === serviceId);
+
+        if (direction === 'up' && indexInCategory > 0) {
+            const prevService = categoryServices[indexInCategory - 1];
+            swapSortOrder(currentService, prevService);
+        } else if (direction === 'down' && indexInCategory < categoryServices.length - 1) {
+            const nextService = categoryServices[indexInCategory + 1];
+            swapSortOrder(currentService, nextService);
+        }
+    };
+
+    const swapSortOrder = (s1: Service, s2: Service) => {
+        // Enforce sequential sort orders for the entire category to avoid gaps or duplicates
+        const updatedServices = services.map(s => {
+            if (s.id === s1.id) return { ...s, sort_order: s2.sort_order ?? services.indexOf(s2) };
+            if (s.id === s2.id) return { ...s, sort_order: s1.sort_order ?? services.indexOf(s1) };
+            return s;
+        });
+
+        // Normalize all sort orders to ensure they are sequential and consistent
+        const fullyOrderedServices = [...updatedServices].sort((a, b) => {
+            if (a.category !== b.category) return a.category.localeCompare(b.category);
+            return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+        }).map((s, idx) => ({
+            ...s,
+            sort_order: idx
+        }));
+
+        updateServices(fullyOrderedServices);
+    };
+
+    const handleMoveCategory = (category: string, direction: 'up' | 'down') => {
+        const currentCats = [...categoryOrder];
+        const index = currentCats.indexOf(category);
+        if (index === -1) return;
+
+        if (direction === 'up' && index > 0) {
+            const temp = currentCats[index];
+            currentCats[index] = currentCats[index - 1];
+            currentCats[index - 1] = temp;
+        } else if (direction === 'down' && index < currentCats.length - 1) {
+            const temp = currentCats[index];
+            currentCats[index] = currentCats[index + 1];
+            currentCats[index + 1] = temp;
+        }
+
+        updateCategoryOrder(currentCats);
+    };
+
     // Group services by category
     const servicesByCategory = services.reduce((acc, s) => {
         const cat = s.category || 'Otros';
@@ -107,6 +184,13 @@ export default function AdminPage() {
         acc[cat].push(s);
         return acc;
     }, {} as Record<string, Service[]>);
+
+    // Map of ES Category -> EN Category for pre-filling
+    const categoriesMap = Object.entries(servicesByCategory).reduce((acc, [cat, items]) => {
+        const firstWithEn = items.find(s => s.category_en);
+        if (firstWithEn?.category_en) acc[cat] = firstWithEn.category_en;
+        return acc;
+    }, {} as Record<string, string>);
 
     const toggleCategory = (cat: string) => {
         setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
@@ -175,13 +259,15 @@ export default function AdminPage() {
                                         defaultCategory={creatingInCategory || undefined}
                                         onSave={handleSaveService}
                                         onCancel={() => { setIsCreating(false); setEditingService(null); setCreatingInCategory(null); }}
+                                        categoriesMap={categoriesMap}
                                     />
                                 </div>
                             )}
 
                             {showServices && (
                                 <div className="grid grid-cols-1 gap-8">
-                                    {Object.entries(servicesByCategory).map(([category, items]) => {
+                                    {(categoryOrder.length > 0 ? categoryOrder : Object.keys(servicesByCategory)).map((category, catIndex, currentList) => {
+                                        const items = servicesByCategory[category] || [];
                                         const isOpen = openCategories[category] ?? false;
                                         return (
                                             <div key={category} className="space-y-4">
@@ -189,10 +275,34 @@ export default function AdminPage() {
                                                     className="flex items-center justify-between cursor-pointer group/cat"
                                                     onClick={() => toggleCategory(category)}
                                                 >
-                                                    <h3 className="text-xs font-bold text-stone-400 uppercase tracking-tighter flex items-center gap-2">
-                                                        <span className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
-                                                        {category}
-                                                    </h3>
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-xs font-bold text-stone-400 uppercase tracking-tighter flex items-center gap-2">
+                                                            <span className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+                                                            {category}
+                                                        </h3>
+                                                        <div className="flex gap-1 opacity-0 group-hover/cat:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleMoveCategory(category, 'up'); }}
+                                                                disabled={catIndex === 0}
+                                                                className="p-1 hover:text-gold-500 disabled:opacity-30"
+                                                                title="Mover Categoría Arriba"
+                                                            >
+                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path d="M5 15l7-7 7 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleMoveCategory(category, 'down'); }}
+                                                                disabled={catIndex === currentList.length - 1}
+                                                                className="p-1 hover:text-gold-500 disabled:opacity-30"
+                                                                title="Mover Categoría Abajo"
+                                                            >
+                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                     <div className="flex gap-4">
                                                         <button
                                                             onClick={(e) => {
@@ -255,7 +365,27 @@ export default function AdminPage() {
                                                                         <h4 className="font-serif font-bold text-lg text-stone-800 tracking-tight">{service.name}</h4>
                                                                         <p className="text-[#C5A02E] font-bold text-sm mt-0.5">€{service.price.toLocaleString()}</p>
                                                                     </div>
-                                                                    <div className="flex gap-4 transition-opacity">
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className="flex flex-col gap-1 mr-2 border-r border-stone-200 pr-4">
+                                                                            <button
+                                                                                onClick={() => handleMoveService(service.id, 'up')}
+                                                                                className="text-stone-300 hover:text-gold-500 transition-colors"
+                                                                                title="Subir"
+                                                                            >
+                                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path d="M5 15l7-7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                                </svg>
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => handleMoveService(service.id, 'down')}
+                                                                                className="text-stone-300 hover:text-gold-500 transition-colors"
+                                                                                title="Bajar"
+                                                                            >
+                                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        </div>
                                                                         <button
                                                                             onClick={() => { setEditingService(service); setIsCreating(false); }}
                                                                             className="text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-widest"
@@ -306,6 +436,20 @@ export default function AdminPage() {
                                         <Button variant="gold" onClick={() => { updatePhone(phoneInput); alert('¡Número Guardado!'); }}>
                                             GUARDAR
                                         </Button>
+                                    </div>
+                                    <div className="mt-8 pt-8 border-t border-stone-100">
+                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase tracking-tighter">Instagram del Negocio</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                value={instagramInput}
+                                                onChange={e => setInstagramInput(e.target.value)}
+                                                className="flex-1 px-4 py-2 rounded-xl bg-stone-50 border border-stone-200 text-stone-700 outline-none focus:border-[#C5A02E]/50"
+                                                placeholder="https://instagram.com/..."
+                                            />
+                                            <Button variant="gold" onClick={() => { updateInstagramLink(instagramInput); alert('¡Link de Instagram Guardado!'); }}>
+                                                GUARDAR
+                                            </Button>
+                                        </div>
                                     </div>
                                     <div className="mt-8 pt-8 border-t border-stone-100 space-y-2">
                                         <p className="text-xs text-stone-400 font-medium italic">Herramientas para el equipo:</p>

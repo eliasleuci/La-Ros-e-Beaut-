@@ -7,9 +7,10 @@ interface ServiceEditorProps {
     defaultCategory?: string;
     onSave: (service: Service) => void;
     onCancel: () => void;
+    categoriesMap?: Record<string, string>; // Maps category name (ES) to translation (EN)
 }
 
-export function ServiceEditor({ initialService, defaultCategory, onSave, onCancel }: ServiceEditorProps) {
+export function ServiceEditor({ initialService, defaultCategory, onSave, onCancel, categoriesMap }: ServiceEditorProps) {
     const [name, setName] = useState('');
     const [nameEn, setNameEn] = useState('');
     const [price, setPrice] = useState('');
@@ -28,7 +29,7 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
             setPrice(initialService.price.toString());
             setDuration(initialService.duration);
             setCategory(initialService.category || 'Otros');
-            setCategoryEn(initialService.category_en || '');
+            setCategoryEn(initialService.category_en || categoriesMap?.[initialService.category || 'Otros'] || '');
             setDescription(initialService.description || '');
             setDescriptionEn(initialService.description_en || '');
             if (initialService.promo_price) {
@@ -43,9 +44,11 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
             }
         } else if (defaultCategory) {
             setCategory(defaultCategory);
-            // If creating in an existing category, try to find its EN counterpart
+            if (categoriesMap?.[defaultCategory]) {
+                setCategoryEn(categoriesMap[defaultCategory]);
+            }
         }
-    }, [initialService, defaultCategory]);
+    }, [initialService, defaultCategory, categoriesMap]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -59,7 +62,8 @@ export function ServiceEditor({ initialService, defaultCategory, onSave, onCance
             category_en: categoryEn,
             description,
             description_en: descriptionEn,
-            promo_price: promoPrice ? Number(promoPrice) : null
+            promo_price: promoPrice ? Number(promoPrice) : null,
+            sort_order: initialService?.sort_order
         });
     };
 

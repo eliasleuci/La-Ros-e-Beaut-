@@ -14,10 +14,11 @@ export interface Service {
     name_en?: string;
     description_en?: string;
     promo_price?: number | null;
+    sort_order?: number;
 }
 
 export function ServiceSelection({ onSelect }: { onSelect: (service: Service) => void }) {
-    const { services } = useConfig();
+    const { services, categoryOrder, updateCategoryOrder } = useConfig();
     const { t, language } = useLanguage();
     const [openCategory, setOpenCategory] = useState<string | null>(null);
 
@@ -31,14 +32,17 @@ export function ServiceSelection({ onSelect }: { onSelect: (service: Service) =>
         return acc;
     }, {} as Record<string, Service[]>);
 
-    // Define category order
-    const categoryOrder = [
-        'Micropigmentación',
-        'Lifting y Cejas',
-        'Tratamiento Facial',
-        'Tratamiento Corporal',
-        'Otros'
-    ];
+    // Category display order: Use dynamic order if available, else fall back to legacy hardcoded + alphabetic
+    const displayOrder = categoryOrder.length > 0
+        ? categoryOrder
+        : [
+            'Micropigmentación',
+            'Lifting y Cejas',
+            'Tratamiento Facial',
+            'Tratamiento Corporal',
+            ...Object.keys(groupedServices).filter(c => !['Micropigmentación', 'Lifting y Cejas', 'Tratamiento Facial', 'Tratamiento Corporal', 'Otros'].includes(c)),
+            'Otros'
+        ];
 
     const getTranslatedCategory = (cat: string, items: Service[]) => {
         // First check if any service in this category has a category_en set
@@ -55,15 +59,7 @@ export function ServiceSelection({ onSelect }: { onSelect: (service: Service) =>
         return cat;
     };
 
-    const sortedCategories = Object.keys(groupedServices)
-        // .filter(category => category !== 'Otros') // Allow others to show if needed, but keep at end
-        .sort((a, b) => {
-            const indexA = categoryOrder.indexOf(a);
-            const indexB = categoryOrder.indexOf(b);
-            const scoreA = indexA === -1 ? 999 : indexA;
-            const scoreB = indexB === -1 ? 999 : indexB;
-            return scoreA - scoreB;
-        });
+    const sortedCategories = displayOrder.filter(cat => groupedServices[cat]);
 
     const toggleCategory = (category: string) => {
         setOpenCategory(openCategory === category ? null : category);

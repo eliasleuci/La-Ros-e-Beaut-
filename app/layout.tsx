@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   description: "Tratamientos estéticos exclusivos para tu bienestar.",
 };
 
+import { SocialLinks } from "@/components/public/SocialLinks";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,6 +35,7 @@ export default function RootLayout({
         <ConfigProvider>
           <LanguageProvider>
             {children}
+            <SocialLinks />
           </LanguageProvider>
         </ConfigProvider>
       </body>
