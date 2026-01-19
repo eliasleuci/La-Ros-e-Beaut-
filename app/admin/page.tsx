@@ -179,6 +179,11 @@ export default function AdminPage() {
 
     // Group services by category
     const servicesByCategory = services.reduce((acc, s) => {
+        if (s.promo_price) {
+            const promoKey = 'VIRTUAL_PROMO';
+            if (!acc[promoKey]) acc[promoKey] = [];
+            acc[promoKey].push(s);
+        }
         const cat = s.category || 'Otros';
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(s);
@@ -220,7 +225,6 @@ export default function AdminPage() {
     return (
         <div className="min-h-screen bg-stone-50 p-4 md:p-12 pb-32">
             <div className="max-w-6xl mx-auto space-y-12">
-                {/* Header */}
                 {/* Header */}
                 <div className="flex items-center justify-between mb-16">
                     <h1 className="text-4xl font-serif font-bold text-stone-800">Panel de Control</h1>
@@ -266,20 +270,24 @@ export default function AdminPage() {
 
                             {showServices && (
                                 <div className="grid grid-cols-1 gap-8">
-                                    {(categoryOrder.length > 0 ? categoryOrder : Object.keys(servicesByCategory)).map((category, catIndex, currentList) => {
+                                    {([
+                                        ...(servicesByCategory['VIRTUAL_PROMO'] ? ['VIRTUAL_PROMO'] : []),
+                                        ...(categoryOrder.length > 0 ? categoryOrder : Object.keys(servicesByCategory).filter(c => c !== 'VIRTUAL_PROMO'))
+                                    ]).map((category, catIndex, currentList) => {
                                         const items = servicesByCategory[category] || [];
                                         const isOpen = openCategories[category] ?? false;
+                                        const isVirtual = category === 'VIRTUAL_PROMO';
                                         return (
                                             <div key={category} className="space-y-4">
                                                 <div
                                                     className="flex items-center justify-between cursor-pointer group/cat"
                                                     onClick={() => toggleCategory(category)}
                                                 >
-                                                    <div className="flex items-center gap-3">
-                                                        <h3 className="text-xs font-bold text-stone-400 uppercase tracking-tighter flex items-center gap-2">
-                                                            <span className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
-                                                            {category}
-                                                        </h3>
+                                                    <h3 className={`text-xs font-bold ${isVirtual ? 'text-amber-500' : 'text-stone-400'} uppercase tracking-tighter flex items-center gap-2`}>
+                                                        <span className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+                                                        {isVirtual ? 'PROMOCIONES (VISTA RÁPIDA)' : category}
+                                                    </h3>
+                                                    {!isVirtual && (
                                                         <div className="flex gap-1 opacity-0 group-hover/cat:opacity-100 transition-opacity">
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); handleMoveCategory(category, 'up'); }}
@@ -302,34 +310,36 @@ export default function AdminPage() {
                                                                 </svg>
                                                             </button>
                                                         </div>
-                                                    </div>
-                                                    <div className="flex gap-4">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const firstService = items.find(s => s.category_en);
-                                                                setEditingCategory({
-                                                                    es: category,
-                                                                    en: firstService?.category_en || '',
-                                                                    original: category
-                                                                });
-                                                            }}
-                                                            className="text-[10px] font-bold text-blue-500 hover:text-blue-700 transition-colors uppercase"
-                                                        >
-                                                            Traducir Categoría
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setEditingService(null);
-                                                                setIsCreating(true);
-                                                                setCreatingInCategory(category);
-                                                            }}
-                                                            className="text-[10px] font-bold text-[#8B7023] hover:text-[#C5A02E] transition-colors uppercase"
-                                                        >
-                                                            + NUEVO EN {category}
-                                                        </button>
-                                                    </div>
+                                                    )}
+                                                    {!isVirtual && (
+                                                        <div className="flex gap-4">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const firstService = items.find(s => s.category_en);
+                                                                    setEditingCategory({
+                                                                        es: category,
+                                                                        en: firstService?.category_en || '',
+                                                                        original: category
+                                                                    });
+                                                                }}
+                                                                className="text-[10px] font-bold text-blue-500 hover:text-blue-700 transition-colors uppercase"
+                                                            >
+                                                                Traducir Categoría
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setEditingService(null);
+                                                                    setIsCreating(true);
+                                                                    setCreatingInCategory(category);
+                                                                }}
+                                                                className="text-[10px] font-bold text-[#8B7023] hover:text-[#C5A02E] transition-colors uppercase"
+                                                            >
+                                                                + NUEVO EN {category}
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {editingCategory?.original === category && (

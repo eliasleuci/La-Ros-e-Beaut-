@@ -16,7 +16,7 @@
         "processing": "Processing...",
         "argentina": "Spain",
         "cordoba": "Marbella",
-        "estetica_bienestar": "AESTHETICS & WELLBEING",
+        "estetica_bienestar": "Your beauty, in its most natural form",
         "staff_access": "staff access",
         "admin_panel": "admin panel",
         "weekend_alert": "Sorry, we do not work on weekends. Please select a weekday.",
@@ -29,8 +29,10 @@
             "lifting": "Lifting & Brows",
             "facial": "Facial Treatment",
             "corporal": "Body Treatment",
-            "others": "Others"
-        }
+            "others": "Others",
+            "promotions": "Promotions"
+        },
+        "offer": "Offers"
     },
     "contact": {
         "title": "Your Details",

@@ -123,6 +123,7 @@ interface ConfigContextType {
     deleteExpense: (id: string) => void;
     importHolidays: () => void;
     resetToDefaults: () => void;
+    isLoaded: boolean;
 }
 
 const DEFAULT_SERVICES: Service[] = [
@@ -193,22 +194,62 @@ const MARBELLA_HOLIDAYS_2026 = [
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
 export function ConfigProvider({ children }: { children: React.ReactNode }) {
-    const [services, setServices] = useState<Service[]>([]);
-    const [businessPhone, setBusinessPhone] = useState(DEFAULT_PHONE);
+    const [services, setServices] = useState<Service[]>(() => {
+        if (typeof window === 'undefined') return [];
+        const saved = localStorage.getItem('estetica_services');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) { return []; }
+        }
+        return [];
+    });
+    const [businessPhone, setBusinessPhone] = useState(() => {
+        if (typeof window === 'undefined') return DEFAULT_PHONE;
+        const saved = localStorage.getItem('estetica_phone');
+        return saved ? saved.replace(/\D/g, '') : DEFAULT_PHONE;
+    });
     const [instagramLink, setInstagramLink] = useState(DEFAULT_INSTAGRAM);
     const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
     const [adminPin, setAdminPin] = useState(DEFAULT_PIN);
     const [blockedDates, setBlockedDates] = useState<string[]>(DEFAULT_BLOCKED_DATES);
     const [professionalBlocks, setProfessionalBlocks] = useState<ProfessionalBlock[]>(DEFAULT_PROFESSIONAL_BLOCKS);
-    const [faqs, setFaqs] = useState<FAQ[]>(DEFAULT_FAQS);
+    const [faqs, setFaqs] = useState<FAQ[]>(() => {
+        if (typeof window === 'undefined') return DEFAULT_FAQS;
+        const saved = localStorage.getItem('estetica_faqs');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return Array.isArray(parsed) ? parsed : DEFAULT_FAQS;
+            } catch (e) { return DEFAULT_FAQS; }
+        }
+        return DEFAULT_FAQS;
+    });
     const [galleryImages, setGalleryImages] = useState<string[]>(DEFAULT_GALLERY);
-    const [team, setTeam] = useState<TeamMember[]>(DEFAULT_TEAM);
+    const [team, setTeam] = useState<TeamMember[]>(() => {
+        if (typeof window === 'undefined') return DEFAULT_TEAM;
+        const saved = localStorage.getItem('estetica_team');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return Array.isArray(parsed) ? parsed : DEFAULT_TEAM;
+            } catch (e) { return DEFAULT_TEAM; }
+        }
+        return DEFAULT_TEAM;
+    });
     const [bookings, setBookings] = useState<Booking[]>(DEFAULT_BOOKINGS);
     const [reviews, setReviews] = useState<Review[]>(DEFAULT_REVIEWS);
     const [clinicalRecords, setClinicalRecords] = useState<ClinicalRecord[]>([]);
     const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        const saved = localStorage.getItem('estetica_services');
+        return !!saved;
+    });
+
+    // Removed useEffect for initial localStorage load as it's now in useState
 
     // Load from Supabase on mount with migration and self-healing logic
     useEffect(() => {
@@ -745,7 +786,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             updateExpense,
             deleteExpense,
             importHolidays,
-            resetToDefaults
+            resetToDefaults,
+            isLoaded
         }}>
             {children}
         </ConfigContext.Provider>

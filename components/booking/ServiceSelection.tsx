@@ -24,6 +24,13 @@ export function ServiceSelection({ onSelect }: { onSelect: (service: Service) =>
 
     // Group services by category
     const groupedServices = services.reduce((acc, service) => {
+        // Handle Promotions category automatically (Virtual category)
+        if (service.promo_price) {
+            const promoKey = 'VIRTUAL_PROMO';
+            if (!acc[promoKey]) acc[promoKey] = [];
+            acc[promoKey].push(service);
+        }
+
         const category = service.category || 'Otros';
         if (!acc[category]) {
             acc[category] = [];
@@ -33,18 +40,24 @@ export function ServiceSelection({ onSelect }: { onSelect: (service: Service) =>
     }, {} as Record<string, Service[]>);
 
     // Category display order: Use dynamic order if available, else fall back to legacy hardcoded + alphabetic
-    const displayOrder = categoryOrder.length > 0
-        ? categoryOrder
-        : [
-            'Micropigmentación',
-            'Lifting y Cejas',
-            'Tratamiento Facial',
-            'Tratamiento Corporal',
-            ...Object.keys(groupedServices).filter(c => !['Micropigmentación', 'Lifting y Cejas', 'Tratamiento Facial', 'Tratamiento Corporal', 'Otros'].includes(c)),
-            'Otros'
-        ];
+    const promoKey = 'VIRTUAL_PROMO';
+    const displayOrder = [
+        ...(groupedServices[promoKey] ? [promoKey] : []),
+        ...(categoryOrder.length > 0
+            ? categoryOrder
+            : [
+                'Micropigmentación',
+                'Lifting y Cejas',
+                'Tratamiento Facial',
+                'Tratamiento Corporal',
+                ...Object.keys(groupedServices).filter(c => !['Micropigmentación', 'Lifting y Cejas', 'Tratamiento Facial', 'Tratamiento Corporal', 'Otros', 'VIRTUAL_PROMO'].includes(c)),
+                'Otros'
+            ])
+    ];
 
     const getTranslatedCategory = (cat: string, items: Service[]) => {
+        if (cat === 'VIRTUAL_PROMO') return t('common.categories.promotions') || (language === 'en' ? 'Promotions' : 'Promociones');
+
         // First check if any service in this category has a category_en set
         if (language === 'en') {
             const firstWithEn = items.find(s => s.category_en);
@@ -74,13 +87,15 @@ export function ServiceSelection({ onSelect }: { onSelect: (service: Service) =>
 
             <div className="space-y-4">
                 {sortedCategories.map((category) => (
-                    <div key={category} className="border border-stone-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                    <div key={category} className={`${category === 'VIRTUAL_PROMO' ? 'shadow-md border-0' : 'border border-stone-200'} rounded-xl overflow-hidden bg-white`}>
                         <button
                             onClick={() => toggleCategory(category)}
                             className={`w-full flex items-center justify-between p-5 text-left transition-colors ${openCategory === category ? 'bg-stone-50 text-stone-900' : 'bg-white text-stone-700 hover:bg-stone-50'
                                 }`}
                         >
-                            <span className="font-serif text-xl font-medium">{getTranslatedCategory(category, groupedServices[category])}</span>
+                            <span className="font-serif text-xl font-medium flex items-center gap-3">
+                                {getTranslatedCategory(category, groupedServices[category])}
+                            </span>
                             {openCategory === category ? (
                                 <ChevronUp className="w-5 h-5 text-stone-400" />
                             ) : (
@@ -95,8 +110,16 @@ export function ServiceSelection({ onSelect }: { onSelect: (service: Service) =>
                                         <button
                                             key={service.id}
                                             onClick={() => onSelect(service)}
-                                            className="group relative flex items-center justify-between p-4 border border-stone-200 rounded-lg bg-white hover:border-[#C5A02E]/30 hover:shadow-md hover:-translate-y-0.5 transition-all text-left"
+                                            className={`group relative flex items-center justify-between p-4 rounded-lg transition-all text-left ${service.promo_price
+                                                ? 'bg-amber-50/50 shadow-sm hover:shadow-md hover:bg-amber-50 border-amber-100/50 border'
+                                                : 'border border-stone-200 bg-white hover:border-[#C5A02E]/30 hover:shadow-md'
+                                                } hover:-translate-y-0.5`}
                                         >
+                                            {service.promo_price && (
+                                                <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10">
+                                                    PROMO
+                                                </div>
+                                            )}
                                             <div className="flex-1 pr-4">
                                                 <h4 className="font-medium text-stone-800 group-hover:text-stone-900 transition-colors">
                                                     {language === 'en' && service.name_en ? service.name_en : service.name}

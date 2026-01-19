@@ -29,8 +29,10 @@
             "lifting": "Lifting y Cejas",
             "facial": "Tratamiento Facial",
             "corporal": "Tratamiento Corporal",
-            "others": "Otros"
-        }
+            "others": "Otros",
+            "promotions": "Promociones"
+        },
+        "offer": "Ofertas"
     },
     "contact": {
         "title": "Tus Datos",

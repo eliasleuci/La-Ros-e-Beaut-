@@ -13,7 +13,7 @@ type Step = 'service' | 'date' | 'contact';
 
 export function BookingWizard() {
     const { t, language } = useLanguage();
-    const { businessPhone, addBooking, team, professionalBlocks } = useConfig();
+    const { businessPhone, addBooking, team, professionalBlocks, isLoaded } = useConfig();
     const [step, setStep] = useState<Step>('service');
     const [data, setData] = useState({
         service: null as Service | null,
@@ -88,8 +88,8 @@ export function BookingWizard() {
     };
 
     return (
-        <div className="w-full max-w-md mx-auto">
-            <Card key={step} className="">
+        <div className={`w-full max-w-md mx-auto transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+            <Card key={step} className="overflow-hidden">
                 {step === 'service' && (
                     <ServiceSelection onSelect={handleServiceSelect} />
                 )}
