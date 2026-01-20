@@ -88,7 +88,7 @@ export function BookingWizard() {
     };
 
     return (
-        <div className={`w-full max-w-md mx-auto transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`w-full max-w-md mx-auto transition-opacity duration-200 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
             <Card key={step} className="overflow-hidden">
                 {step === 'service' && (
                     <ServiceSelection onSelect={handleServiceSelect} />

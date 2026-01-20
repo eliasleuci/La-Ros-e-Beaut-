@@ -257,36 +257,18 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             try {
                 console.log('Iniciando sincronización con la nube...');
 
-                // Fetch all data in parallel
+                // TIER 1: Critical for initial UI display and booking basic functionality
                 const [
                     { data: servicesData },
                     { data: configData },
-                    { data: faqsData },
-                    { data: teamData },
-                    { data: bookingsData },
-                    { data: reviewsData },
-                    { data: clinicalData },
-                    { data: galleryData },
                     { data: proBlockedData },
-                    { data: expenseCategoriesData },
-                    { data: expensesData }
                 ] = await Promise.all([
                     supabase.from('services').select('*').order('sort_order', { ascending: true }),
                     supabase.from('app_config').select('*'),
-                    supabase.from('faqs').select('*'),
-                    supabase.from('team').select('*'),
-                    supabase.from('bookings').select('*').order('created_at', { ascending: false }),
-                    supabase.from('reviews').select('*').order('date', { ascending: false }),
-                    supabase.from('clinical_records').select('*').order('date', { ascending: false }),
-                    supabase.from('gallery').select('*'),
                     supabase.from('professional_blocks').select('*'),
-                    supabase.from('expense_categories').select('*'),
-                    supabase.from('expenses').select('*').order('created_at', { ascending: false })
                 ]);
 
                 // Improved Cloud-Ready check:
-                // Only trigger migration if cloud is definitively empty AND config doesn't exist.
-                // If it's just a network error (data is null), we should NOT assume it's empty.
                 const cloudIsInitialized = (configData && configData.length > 0);
                 const cloudIsEmpty = (servicesData && servicesData.length === 0) && !cloudIsInitialized;
 
@@ -294,105 +276,27 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     console.log('Cloud detectado como nuevo. Buscando datos locales para migrar...');
 
                     const savedServices = localStorage.getItem('estetica_services');
-                    const savedBookings = localStorage.getItem('estetica_bookings');
                     const savedFaqs = localStorage.getItem('estetica_faqs');
-                    const savedTeam = localStorage.getItem('estetica_team');
                     const savedPhone = localStorage.getItem('estetica_phone');
 
-                    // SELF-HEALING: If EVERYTHING is empty or INVALID (no categories), use defaults
                     let servicesToUse = savedServices ? JSON.parse(savedServices) : DEFAULT_SERVICES;
-
-                    // Validate if services have categories (Legacy check)
                     const hasValidCategories = servicesToUse.every((s: Service) => s.category && s.category !== 'Otros');
                     if (!hasValidCategories) {
                         console.log('Datos locales antiguos detectados. Usando nuevos defaults...');
                         servicesToUse = DEFAULT_SERVICES;
                     }
 
-                    const faqsToUse = savedFaqs ? JSON.parse(savedFaqs) : DEFAULT_FAQS;
                     const phoneToUse = (savedPhone || DEFAULT_PHONE).replace(/\D/g, '');
-                    const teamToUse = savedTeam ? JSON.parse(savedTeam) : [];
-
                     setServices(servicesToUse);
-                    setFaqs(faqsToUse);
                     setBusinessPhone(phoneToUse);
-                    setTeam(teamToUse);
 
-                    // Upload to Cloud so it stays there
-                    console.log('Subiendo datos iniciales a la nube...');
-                    // REMOVED: Nuclear deletion "delete().not(...)" - too dangerous.
-
-                    if (servicesToUse.length > 0) {
-                        // Use upsert instead of insert to avoid duplicate key errors during migration
-                        await supabase.from('services').upsert(servicesToUse);
-                    }
-                    if (faqsToUse.length > 0) await supabase.from('faqs').insert(faqsToUse);
+                    // Upload to Cloud
+                    await supabase.from('services').upsert(servicesToUse);
                     await supabase.from('app_config').upsert({ key: 'business_phone', value: phoneToUse });
-                    if (teamToUse.length > 0) await supabase.from('team').insert(teamToUse);
-
-                    // Migrate Bookings and Clinical if they exist
-                    if (savedBookings) {
-                        const parsedBookings = JSON.parse(savedBookings);
-                        setBookings(parsedBookings);
-                        for (const b of parsedBookings) {
-                            await supabase.from('bookings').insert({
-                                id: b.id, client_name: b.clientName, client_phone: b.clientPhone,
-                                service_id: b.serviceId, service_name: b.serviceName, price: b.price,
-                                payment_method: b.paymentMethod, date: b.date, time: b.time,
-                                status: b.status, professional_id: b.professionalId, created_at: b.createdAt
-                            });
-                        }
-                    }
-
-                    const savedClinical = localStorage.getItem('estetica_clinical');
-                    if (savedClinical) {
-                        const parsedC = JSON.parse(savedClinical);
-                        setClinicalRecords(parsedC);
-                        for (const c of parsedC) {
-                            await supabase.from('clinical_records').insert({
-                                id: c.id, client_name: c.clientName, client_phone: c.clientPhone,
-                                professional_id: c.professional_id, professional_name: c.professional_name,
-                                date: c.date, treatment: c.treatment, notes: c.notes
-                            });
-                        }
-                    }
                 } else {
                     // Cloud has data
-                    console.log('Datos cargados desde la nube. Verificando integridad...');
-
-                    // TRUST CLOUD DATA
                     setServices(servicesData || []);
-                    if (faqsData) setFaqs(faqsData);
-                    if (teamData) setTeam(teamData);
-
-                    console.log('📥 Cargando reservas desde Supabase...');
-                    console.log('Datos crudos de bookings:', bookingsData);
-                    console.log('Cantidad de bookings:', bookingsData?.length || 0);
-
-                    if (bookingsData) {
-                        const mappedBookings = bookingsData.map((b: any) => ({
-                            ...b,
-                            clientName: b.client_name,
-                            clientPhone: b.client_phone,
-                            serviceId: b.service_id,
-                            serviceName: b.service_name,
-                            paymentMethod: b.payment_method,
-                            professionalId: b.professional_id,
-                            createdAt: b.created_at
-                        }));
-                        console.log('Bookings mapeados:', mappedBookings);
-                        setBookings(mappedBookings);
-                    }
-                    if (reviewsData) setReviews(reviewsData.map((r: any) => ({ ...r, clientName: r.client_name })));
-                    if (clinicalData) {
-                        setClinicalRecords(clinicalData.map((c: any) => ({
-                            ...c,
-                            clientName: c.client_name,
-                            clientPhone: c.client_phone,
-                            professionalId: c.professional_id,
-                            professionalName: c.professional_name
-                        })));
-                    }
+                    if (proBlockedData) setProfessionalBlocks(proBlockedData);
 
                     if (configData) {
                         const adminPinVal = configData.find((c: any) => c.key === 'admin_pin')?.value;
@@ -406,11 +310,58 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                         if (categoryOrderVal) setCategoryOrder(JSON.parse(categoryOrderVal));
                         if (blockedDatesVal) setBlockedDates(JSON.parse(blockedDatesVal));
                     }
+                }
 
-                    if (proBlockedData) setProfessionalBlocks(proBlockedData);
+                // Show UI as soon as tier 1 is ready
+                setIsLoaded(true);
+
+                // TIER 2: Background data (non-blocking for initial booking view)
+                Promise.all([
+                    supabase.from('faqs').select('*'),
+                    supabase.from('team').select('*'),
+                    supabase.from('bookings').select('*').order('created_at', { ascending: false }),
+                    supabase.from('reviews').select('*').order('date', { ascending: false }),
+                    supabase.from('clinical_records').select('*').order('date', { ascending: false }),
+                    supabase.from('gallery').select('*'),
+                    supabase.from('expense_categories').select('*'),
+                    supabase.from('expenses').select('*').order('created_at', { ascending: false })
+                ]).then(([
+                    { data: faqsData },
+                    { data: teamData },
+                    { data: bookingsData },
+                    { data: reviewsData },
+                    { data: clinicalData },
+                    { data: galleryData },
+                    { data: expenseCategoriesData },
+                    { data: expensesData }
+                ]) => {
+                    if (faqsData) setFaqs(faqsData);
+                    if (teamData) setTeam(teamData);
+
+                    if (bookingsData) {
+                        const mappedBookings = bookingsData.map((b: any) => ({
+                            ...b,
+                            clientName: b.client_name,
+                            clientPhone: b.client_phone,
+                            serviceId: b.service_id,
+                            serviceName: b.service_name,
+                            paymentMethod: b.payment_method,
+                            professionalId: b.professional_id,
+                            createdAt: b.created_at
+                        }));
+                        setBookings(mappedBookings);
+                    }
+                    if (reviewsData) setReviews(reviewsData.map((r: any) => ({ ...r, clientName: r.client_name })));
+                    if (clinicalData) {
+                        setClinicalRecords(clinicalData.map((c: any) => ({
+                            ...c,
+                            clientName: c.client_name,
+                            clientPhone: c.client_phone,
+                            professionalId: c.professional_id,
+                            professionalName: c.professional_name
+                        })));
+                    }
                     if (galleryData) setGalleryImages(galleryData.map((g: any) => g.image_url));
-
-                    // Load expense categories and expenses
                     if (expenseCategoriesData) setExpenseCategories(expenseCategoriesData);
                     if (expensesData) {
                         setExpenses(expensesData.map((e: any) => ({
@@ -421,15 +372,13 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                             createdAt: e.created_at
                         })));
                     }
-                }
+                });
 
             } catch (error) {
                 console.error('Error crítico en sincronización:', error);
-                // Last ditch effort: show local data if everything fails
                 const saved = localStorage.getItem('estetica_services');
                 if (saved) setServices(JSON.parse(saved));
-            } finally {
-                setIsLoaded(true);
+                setIsLoaded(true); // Still show something if local exists
             }
         }
         loadData();
