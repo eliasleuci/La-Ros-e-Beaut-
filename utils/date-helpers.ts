@@ -51,6 +51,16 @@ export function generateTimeSlots(startHour: number = 10, endHour: number = 20):
     return slots;
 }
 
+export function getSlotsForDate(date: Date): string[] {
+    const localizedDate = new Date(date.toLocaleString('en-US', { timeZone: SPAIN_TZ }));
+    const day = localizedDate.getDay();
+
+    if (day === 6) { // Saturday
+        return generateTimeSlots(10, 14);
+    }
+    return generateTimeSlots(10, 20); // Regular weekdays
+}
+
 /**
  * Checks if a date is a Spanish national holiday (2025/2026 common)
  */
@@ -101,7 +111,7 @@ export function isPastDate(date: Date): boolean {
 export function isWeekend(date: Date): boolean {
     const localizedDate = new Date(date.toLocaleString('en-US', { timeZone: SPAIN_TZ }));
     const day = localizedDate.getDay();
-    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+    return day === 0; // 0 = Sunday. Saturday (6) is now enabled.
 }
 
 /**

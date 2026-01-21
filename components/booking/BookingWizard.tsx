@@ -14,7 +14,12 @@ type Step = 'service' | 'date' | 'contact';
 export function BookingWizard() {
     const { t, language } = useLanguage();
     const { businessPhone, addBooking, team, professionalBlocks, isLoaded } = useConfig();
+    const [mounted, setMounted] = React.useState(false);
     const [step, setStep] = useState<Step>('service');
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
     const [data, setData] = useState({
         service: null as Service | null,
         date: null as Date | null,
@@ -87,8 +92,19 @@ export function BookingWizard() {
         }
     };
 
+    if (!mounted || !isLoaded) {
+        return (
+            <div className="w-full max-w-md mx-auto p-12 text-center">
+                <div className="animate-pulse flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 rounded-full border-2 border-stone-100 border-t-[#C5A02E] animate-spin"></div>
+                    <p className="text-stone-400 text-xs font-bold uppercase tracking-widest">{t('common.loading') || 'Cargando Servicios...'}</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className={`w-full max-w-md mx-auto transition-opacity duration-200 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="w-full max-w-md mx-auto animate-in fade-in duration-300">
             <Card key={step} className="overflow-hidden">
                 {step === 'service' && (
                     <ServiceSelection onSelect={handleServiceSelect} />

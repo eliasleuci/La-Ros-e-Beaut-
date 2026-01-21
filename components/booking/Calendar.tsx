@@ -11,7 +11,8 @@ import {
     isWeekend,
     isSpanishHoliday,
     toSpainDateString,
-    getSpainNow
+    getSpainNow,
+    getSlotsForDate
 } from '@/utils/date-helpers';
 import { useConfig } from '@/context/ConfigContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -23,7 +24,7 @@ interface CalendarProps {
 
 export function Calendar({ onSelect, onBack }: CalendarProps) {
     const { t } = useLanguage();
-    const { blockedDates } = useConfig();
+    const { blockedDates, timeBlocks } = useConfig();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -140,7 +141,10 @@ export function Calendar({ onSelect, onBack }: CalendarProps) {
                             .replace('{month}', t(`months.${selectedDate.getMonth()}`))}
                     </h4>
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                        {generateTimeSlots(10, 20).map(time => (
+                        {getSlotsForDate(selectedDate).filter(time => {
+                            const dateStr = toSpainDateString(selectedDate);
+                            return !timeBlocks.some(block => block.date === dateStr && block.time === time);
+                        }).map(time => (
                             <button
                                 key={time}
                                 onClick={() => setSelectedTime(time)}

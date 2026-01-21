@@ -270,10 +270,20 @@ export default function AdminPage() {
 
                             {showServices && (
                                 <div className="grid grid-cols-1 gap-8">
-                                    {([
-                                        ...(servicesByCategory['VIRTUAL_PROMO'] ? ['VIRTUAL_PROMO'] : []),
-                                        ...(categoryOrder.length > 0 ? categoryOrder : Object.keys(servicesByCategory).filter(c => c !== 'VIRTUAL_PROMO'))
-                                    ]).map((category, catIndex, currentList) => {
+                                    {(() => {
+                                        const allAvailableCats = Object.keys(servicesByCategory).filter(c => c !== 'VIRTUAL_PROMO');
+                                        const orderedCats = categoryOrder.length > 0
+                                            ? [
+                                                ...categoryOrder.filter(c => allAvailableCats.includes(c)),
+                                                ...allAvailableCats.filter(c => !categoryOrder.includes(c))
+                                            ]
+                                            : allAvailableCats;
+
+                                        return [
+                                            ...(servicesByCategory['VIRTUAL_PROMO'] ? ['VIRTUAL_PROMO'] : []),
+                                            ...orderedCats
+                                        ];
+                                    })().map((category, catIndex, currentList) => {
                                         const items = servicesByCategory[category] || [];
                                         const isOpen = openCategories[category] ?? false;
                                         const isVirtual = category === 'VIRTUAL_PROMO';

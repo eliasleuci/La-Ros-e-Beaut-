@@ -39,18 +39,23 @@ export function ServiceSelection({ onSelect }: { onSelect: (service: Service) =>
         return acc;
     }, {} as Record<string, Service[]>);
 
-    // Category display order: Use dynamic order if available, else fall back to legacy hardcoded + alphabetic
+    // Category display order: Use dynamic order if available, else fall back to alphabetic of what's available
     const promoKey = 'VIRTUAL_PROMO';
+    const allCategories = Object.keys(groupedServices).filter(c => c !== promoKey);
+
     const displayOrder = [
         ...(groupedServices[promoKey] ? [promoKey] : []),
         ...(categoryOrder.length > 0
-            ? categoryOrder
+            ? [
+                ...categoryOrder,
+                ...allCategories.filter(c => !categoryOrder.includes(c))
+            ]
             : [
                 'Micropigmentación',
                 'Lifting y Cejas',
                 'Tratamiento Facial',
                 'Tratamiento Corporal',
-                ...Object.keys(groupedServices).filter(c => !['Micropigmentación', 'Lifting y Cejas', 'Tratamiento Facial', 'Tratamiento Corporal', 'Otros', 'VIRTUAL_PROMO'].includes(c)),
+                ...allCategories.filter(c => !['Micropigmentación', 'Lifting y Cejas', 'Tratamiento Facial', 'Tratamiento Corporal', 'Otros'].includes(c)),
                 'Otros'
             ])
     ];

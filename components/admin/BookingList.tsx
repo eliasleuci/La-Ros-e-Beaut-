@@ -4,15 +4,25 @@ import React, { useState } from 'react';
 import { useConfig, Booking } from '@/context/ConfigContext';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { formatDate } from '@/utils/date-helpers';
+import { formatDate, getSlotsForDate } from '@/utils/date-helpers';
 import { ClinicalHistoryModal } from '../staff/ClinicalHistoryModal';
 
 export function BookingList() {
-    const { bookings, deleteBooking, updateBookingStatus, team } = useConfig();
+    const { bookings, deleteBooking, updateBookingStatus, team, services, addBooking } = useConfig();
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
     const [selectedSummaryDate, setSelectedSummaryDate] = useState(new Date().toISOString().split('T')[0]);
     const [viewingHistory, setViewingHistory] = useState<Booking | null>(null);
+    const [isCreating, setIsCreating] = useState(false);
+    const [newBooking, setNewBooking] = useState({
+        clientName: '',
+        clientPhone: '',
+        serviceId: '',
+        professionalId: '',
+        date: new Date().toISOString().split('T')[0],
+        time: '10:00',
+        paymentMethod: 'cash' as 'cash' | 'card'
+    });
 
     const getProfessionalName = (id?: string) => {
         if (!id) return 'Sin Asignar';
@@ -129,6 +139,153 @@ export function BookingList() {
                         <option value="attended">Atendidos</option>
                         <option value="absent">Ausentes</option>
                     </select>
+                </div>
+
+                {/* Manual Booking Form */}
+                <div className="mb-8">
+                    <Button
+                        variant="gold"
+                        fullWidth
+                        onClick={() => setIsCreating(!isCreating)}
+                        className="mb-4"
+                    >
+                        {isCreating ? 'CANCELAR' : '+ NUEVA RESERVA MANUAL'}
+                    </Button>
+
+                    {isCreating && (
+                        <div className="bg-stone-50 p-6 rounded-2xl border border-gold-100 animate-in slide-in-from-top-4">
+                            <h3 className="font-serif font-bold text-stone-800 mb-6 text-xl">Nueva Reserva</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Nombre del Cliente</label>
+                                        <input
+                                            type="text"
+                                            value={newBooking.clientName}
+                                            onChange={e => setNewBooking({ ...newBooking, clientName: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                            placeholder="Ej: Maria Garcia"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">WhatsApp (opcional)</label>
+                                        <input
+                                            type="text"
+                                            value={newBooking.clientPhone}
+                                            onChange={e => setNewBooking({ ...newBooking, clientPhone: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                            placeholder="Ej: 34612345678"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Servicio</label>
+                                        <select
+                                            value={newBooking.serviceId}
+                                            onChange={e => setNewBooking({ ...newBooking, serviceId: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                        >
+                                            <option value="">Seleccionar Servicio</option>
+                                            {services.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name} (€{s.price})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Profesional</label>
+                                        <select
+                                            value={newBooking.professionalId}
+                                            onChange={e => setNewBooking({ ...newBooking, professionalId: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                        >
+                                            <option value="">Cualquiera</option>
+                                            {team.map(t => (
+                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Fecha</label>
+                                        <input
+                                            type="date"
+                                            value={newBooking.date}
+                                            onChange={e => setNewBooking({ ...newBooking, date: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Hora</label>
+                                        <select
+                                            value={newBooking.time}
+                                            onChange={e => setNewBooking({ ...newBooking, time: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                        >
+                                            {getSlotsForDate(new Date(newBooking.date + 'T12:00:00')).map(t => (
+                                                <option key={t} value={t}>{t}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Método de Pago</label>
+                                        <div className="flex gap-4">
+                                            <button
+                                                onClick={() => setNewBooking({ ...newBooking, paymentMethod: 'cash' })}
+                                                className={`flex-1 py-3 rounded-xl border transition-all font-bold text-xs ${newBooking.paymentMethod === 'cash' ? 'bg-[#C5A02E] text-white border-[#C5A02E]' : 'bg-white text-stone-400 border-stone-200'}`}
+                                            >
+                                                EFECTIVO
+                                            </button>
+                                            <button
+                                                onClick={() => setNewBooking({ ...newBooking, paymentMethod: 'card' })}
+                                                className={`flex-1 py-3 rounded-xl border transition-all font-bold text-xs ${newBooking.paymentMethod === 'card' ? 'bg-[#C5A02E] text-white border-[#C5A02E]' : 'bg-white text-stone-400 border-stone-200'}`}
+                                            >
+                                                TARJETA
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="pt-2">
+                                        <Button
+                                            fullWidth
+                                            onClick={() => {
+                                                if (!newBooking.clientName || !newBooking.serviceId) {
+                                                    alert('Por favor complete Nombre y Servicio');
+                                                    return;
+                                                }
+                                                const service = services.find(s => s.id === newBooking.serviceId);
+                                                const bookingToAdd: any = {
+                                                    id: crypto.randomUUID(),
+                                                    clientName: newBooking.clientName,
+                                                    clientPhone: newBooking.clientPhone,
+                                                    serviceId: newBooking.serviceId,
+                                                    serviceName: service?.name || 'Servicio',
+                                                    price: service?.promo_price || service?.price || 0,
+                                                    paymentMethod: newBooking.paymentMethod,
+                                                    date: `${newBooking.date}T${newBooking.time}:00+01:00`,
+                                                    time: newBooking.time,
+                                                    createdAt: new Date().toISOString(),
+                                                    status: 'confirmed',
+                                                    professionalId: newBooking.professionalId || undefined
+                                                };
+                                                addBooking(bookingToAdd);
+                                                setIsCreating(false);
+                                                setNewBooking({
+                                                    clientName: '',
+                                                    clientPhone: '',
+                                                    serviceId: '',
+                                                    professionalId: '',
+                                                    date: new Date().toISOString().split('T')[0],
+                                                    time: '10:00',
+                                                    paymentMethod: 'cash'
+                                                });
+                                            }}
+                                        >
+                                            GUARDAR TURNO
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {isSummaryOpen && (

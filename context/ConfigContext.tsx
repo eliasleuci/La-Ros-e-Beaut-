@@ -79,6 +79,12 @@ export interface Expense {
     createdAt: string;
 }
 
+export interface TimeBlock {
+    id: string;
+    date: string; // YYYY-MM-DD
+    time: string; // HH:MM
+}
+
 interface ConfigContextType {
     services: Service[];
     businessPhone: string;
@@ -87,6 +93,7 @@ interface ConfigContextType {
     adminPin: string;
     blockedDates: string[];
     professionalBlocks: ProfessionalBlock[];
+    timeBlocks: TimeBlock[];
     faqs: FAQ[];
     galleryImages: string[];
     team: TeamMember[];
@@ -104,6 +111,8 @@ interface ConfigContextType {
     updateBlockedDates: (dates: string[]) => void;
     addProfessionalBlock: (block: ProfessionalBlock) => void;
     removeProfessionalBlock: (id: string) => void;
+    addTimeBlock: (block: TimeBlock) => void;
+    removeTimeBlock: (id: string) => void;
     updateFaqs: (faqs: FAQ[]) => void;
     updateGallery: (images: string[]) => void;
     updateTeam: (team: TeamMember[]) => void;
@@ -215,6 +224,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     const [adminPin, setAdminPin] = useState(DEFAULT_PIN);
     const [blockedDates, setBlockedDates] = useState<string[]>(DEFAULT_BLOCKED_DATES);
     const [professionalBlocks, setProfessionalBlocks] = useState<ProfessionalBlock[]>(DEFAULT_PROFESSIONAL_BLOCKS);
+    const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
     const [faqs, setFaqs] = useState<FAQ[]>(() => {
         if (typeof window === 'undefined') return DEFAULT_FAQS;
         const saved = localStorage.getItem('estetica_faqs');
@@ -262,10 +272,12 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     { data: servicesData },
                     { data: configData },
                     { data: proBlockedData },
+                    { data: timeBlockedData },
                 ] = await Promise.all([
                     supabase.from('services').select('*').order('sort_order', { ascending: true }),
                     supabase.from('app_config').select('*'),
                     supabase.from('professional_blocks').select('*'),
+                    supabase.from('time_blocks').select('*'),
                 ]);
 
                 // Improved Cloud-Ready check:
@@ -297,6 +309,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                     // Cloud has data
                     setServices(servicesData || []);
                     if (proBlockedData) setProfessionalBlocks(proBlockedData);
+                    if (timeBlockedData) setTimeBlocks(timeBlockedData);
 
                     if (configData) {
                         const adminPinVal = configData.find((c: any) => c.key === 'admin_pin')?.value;
@@ -516,6 +529,16 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         await supabase.from('professional_blocks').delete().eq('id', id);
     };
 
+    const addTimeBlock = async (block: TimeBlock) => {
+        setTimeBlocks(prev => [...prev, block]);
+        await supabase.from('time_blocks').insert(block);
+    };
+
+    const removeTimeBlock = async (id: string) => {
+        setTimeBlocks(prev => prev.filter(b => b.id !== id));
+        await supabase.from('time_blocks').delete().eq('id', id);
+    };
+
     const updateFaqs = async (newFaqs: FAQ[]) => {
         setFaqs(newFaqs);
         await supabase.from('faqs').delete().not('id', 'is', null);
@@ -700,6 +723,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             adminPin,
             blockedDates,
             professionalBlocks,
+            timeBlocks,
             faqs,
             galleryImages,
             team,
@@ -717,6 +741,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             updateBlockedDates,
             addProfessionalBlock,
             removeProfessionalBlock,
+            addTimeBlock,
+            removeTimeBlock,
             updateFaqs,
             updateGallery,
             updateTeam,

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useConfig, TeamMember } from '@/context/ConfigContext';
-import { getDaysInMonth, getFirstDayOfMonth, toSpainDateString } from '@/utils/date-helpers';
+import { getDaysInMonth, getFirstDayOfMonth, toSpainDateString, getSlotsForDate } from '@/utils/date-helpers';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 
@@ -10,6 +10,8 @@ export function DateBlocker() {
     const [selectedProId, setSelectedProId] = useState<string>('global'); // 'global' or pro ID
     const [rangeMode, setRangeMode] = useState(false);
     const [rangeStart, setRangeStart] = useState<string | null>(null);
+    const [selectedSlotDay, setSelectedSlotDay] = useState<number | null>(null);
+    const { timeBlocks, addTimeBlock, removeTimeBlock } = useConfig();
 
     const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
     const firstDay = getFirstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth());
@@ -65,6 +67,7 @@ export function DateBlocker() {
                 });
             }
         }
+        setSelectedSlotDay(day);
     };
 
     const clearMonthBlocks = () => {
@@ -199,7 +202,7 @@ export function DateBlocker() {
                     {[...Array(daysInMonth)].map((_, i) => {
                         const day = i + 1;
                         const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-                        const isWknd = date.getDay() === 0 || date.getDay() === 6;
+                        const isSunday = date.getDay() === 0;
                         const blocked = isBlocked(day);
                         const blocks = hasAnyBlock(day);
                         const inRange = isInRange(day);
@@ -210,7 +213,7 @@ export function DateBlocker() {
                                 onClick={() => handleDayClick(day)}
                                 className={`
                                     aspect-square flex flex-col items-center justify-center text-sm transition-all relative rounded-lg
-                                    ${isWknd ? 'text-stone-300 bg-stone-100/50' : 'text-stone-600 hover:bg-white hover:shadow-sm'}
+                                    ${isSunday ? 'text-stone-300 bg-stone-100/50' : 'text-stone-600 hover:bg-white hover:shadow-sm'}
                                     ${inRange ? 'ring-2 ring-[#C5A02E] bg-[#C5A02E]/10' : ''}
                                 `}
                             >
@@ -239,6 +242,60 @@ export function DateBlocker() {
                     </div>
                 </div>
             </div>
+
+            {selectedSlotDay && (
+                <div className="mt-8 pt-8 border-t border-stone-100 animate-in fade-in slide-in-from-top-4">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 className="text-lg font-serif font-bold text-stone-800">
+                                Bloqueo de Horarios - {selectedSlotDay} de {currentDate.toLocaleDateString('es-ES', { month: 'long' })}
+                            </h3>
+                            <p className="text-xs text-stone-500 mt-1 uppercase font-bold tracking-tighter">
+                                Los horarios seleccionados no estarán disponibles para reservar
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setSelectedSlotDay(null)}
+                            className="text-xs font-bold text-stone-400 hover:text-stone-600 uppercase"
+                        >
+                            Cerrar [×]
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                        {getSlotsForDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedSlotDay)).map(time => {
+                            const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedSlotDay);
+                            const dateStr = toSpainDateString(date);
+                            const existingBlock = timeBlocks.find(b => b.date === dateStr && b.time === time);
+
+                            return (
+                                <button
+                                    key={time}
+                                    onClick={() => {
+                                        if (existingBlock) {
+                                            removeTimeBlock(existingBlock.id);
+                                        } else {
+                                            addTimeBlock({
+                                                id: crypto.randomUUID(),
+                                                date: dateStr,
+                                                time: time
+                                            });
+                                        }
+                                    }}
+                                    className={`
+                                        py-2 px-1 rounded-lg text-xs font-bold transition-all border
+                                        ${existingBlock
+                                            ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
+                                            : 'bg-white text-stone-600 border-stone-200 hover:border-[#C5A02E] hover:text-[#C5A02E]'}
+                                    `}
+                                >
+                                    {time}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </Card >
     );
 }
