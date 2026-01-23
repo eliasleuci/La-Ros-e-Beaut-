@@ -22,7 +22,8 @@ export function BookingList() {
         clientName: '',
         countryCode: '+34',
         clientPhone: '',
-        serviceId: '',
+        serviceName: '',
+        price: '' as any,
         professionalId: '',
         date: new Date().toISOString().split('T')[0],
         time: '10:00',
@@ -34,45 +35,12 @@ export function BookingList() {
     const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
 
     // Check availability whenever relevant fields change
+    // Note: For manual bookings with custom service names, we skip duration-based availability checks
     React.useEffect(() => {
-        if (isCreating && newBooking.serviceId && newBooking.date && newBooking.time) {
-            const service = services.find(s => s.id === newBooking.serviceId);
-            if (!service) return;
-
-            const duration = parseDuration(service.duration);
-            const dateObj = new Date(newBooking.date + 'T12:00:00'); // Midday to avoid timezone shifting on date part
-
-            // We need to pass the *specific* professional if selected, or the whole team if 'any'
-            // checkAvailability usually checks if *anyone* is free. 
-            // If we selected a specific person, we should ideally restrict the team checked?
-            // The current checkAvailability helper takes 'team'. If we want to check a SPECIFIC person, 
-            // we should probably filter the team array passed to it.
-
-            let teamToCheck = team;
-            if (newBooking.professionalId) {
-                teamToCheck = team.filter(t => t.id === newBooking.professionalId);
-            }
-
-            const isAvailable = checkAvailability(
-                dateObj,
-                newBooking.time,
-                duration,
-                bookings,
-                services,
-                teamToCheck,
-                professionalBlocks
-            );
-
-            if (!isAvailable) {
-                setAvailabilityWarning('⚠️ Horario NO disponible (Capacidad llena o Profesional ocupado).');
-            } else {
-                setAvailabilityWarning(null);
-                setIsOverbooking(false); // Reset overbooking if it becomes available naturally
-            }
-        } else {
-            setAvailabilityWarning(null);
-        }
-    }, [newBooking.date, newBooking.time, newBooking.serviceId, newBooking.professionalId, isCreating, bookings, services, team, professionalBlocks]);
+        // Skip availability checks for manual service entries (no serviceId)
+        setAvailabilityWarning(null);
+        setIsOverbooking(false);
+    }, [newBooking.date, newBooking.time, newBooking.professionalId, isCreating]);
 
     const getProfessionalName = (id?: string) => {
         if (!id) return 'Sin Asignar';
@@ -280,16 +248,26 @@ export function BookingList() {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Servicio</label>
-                                        <select
-                                            value={newBooking.serviceId}
-                                            onChange={e => setNewBooking({ ...newBooking, serviceId: e.target.value })}
+                                        <input
+                                            type="text"
+                                            value={newBooking.serviceName}
+                                            onChange={e => setNewBooking({ ...newBooking, serviceName: e.target.value })}
                                             className="w-full px-4 py-3 rounded-xl border border-stone-200"
-                                        >
-                                            <option value="">Seleccionar Servicio</option>
-                                            {services.map(s => (
-                                                <option key={s.id} value={s.id}>{s.name} (€{s.price})</option>
-                                            ))}
-                                        </select>
+                                            placeholder="Ej: Lifting de pestañas + depilación"
+                                        />
+                                        <p className="text-xs text-stone-400 mt-1">Puedes ingresar cualquier servicio personalizado</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Precio (€)</label>
+                                        <input
+                                            type="number"
+                                            value={newBooking.price}
+                                            onChange={e => setNewBooking({ ...newBooking, price: parseFloat(e.target.value) || 0 })}
+                                            className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                            placeholder="0"
+                                            min="0"
+                                            step="0.01"
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Profesional</label>
@@ -345,43 +323,20 @@ export function BookingList() {
                                         </div>
                                     </div>
 
-                                    {/* Availability Warning & Overbooking Toggle */}
-                                    {availabilityWarning && (
-                                        <div className="bg-red-50 p-4 rounded-xl border border-red-100 animate-pulse">
-                                            <p className="text-red-500 font-bold text-xs mb-2">{availabilityWarning}</p>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    id="overbooking"
-                                                    checked={isOverbooking}
-                                                    onChange={(e) => setIsOverbooking(e.target.checked)}
-                                                    className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                                                />
-                                                <label htmlFor="overbooking" className="text-xs font-bold text-red-600 cursor-pointer select-none">
-                                                    🔓 Habilitar Sobreturno (Forzar Reserva)
-                                                </label>
-                                            </div>
-                                        </div>
-                                    )}
-
                                     <div className="pt-2">
                                         <Button
                                             fullWidth
-                                            disabled={!!availabilityWarning && !isOverbooking}
-                                            className={isOverbooking ? "bg-red-600 hover:bg-red-700 border-red-600" : ""}
                                             onClick={() => {
-                                                if (!newBooking.clientName || !newBooking.serviceId) {
+                                                if (!newBooking.clientName || !newBooking.serviceName) {
                                                     alert('Por favor complete Nombre y Servicio');
                                                     return;
                                                 }
-                                                const service = services.find(s => s.id === newBooking.serviceId);
                                                 const bookingToAdd: any = {
                                                     id: crypto.randomUUID(),
                                                     clientName: newBooking.clientName,
                                                     clientPhone: newBooking.clientPhone ? `${newBooking.countryCode} ${newBooking.clientPhone}`.trim() : '',
-                                                    serviceId: newBooking.serviceId,
-                                                    serviceName: service?.name || 'Servicio',
-                                                    price: service?.promo_price || service?.price || 0,
+                                                    serviceName: newBooking.serviceName,
+                                                    price: newBooking.price,
                                                     paymentMethod: newBooking.paymentMethod,
                                                     date: `${newBooking.date}T${newBooking.time}:00+01:00`,
                                                     time: newBooking.time,
@@ -391,13 +346,12 @@ export function BookingList() {
                                                 };
                                                 addBooking(bookingToAdd);
                                                 setIsCreating(false);
-                                                setIsOverbooking(false);
-                                                setAvailabilityWarning(null);
                                                 setNewBooking({
                                                     clientName: '',
                                                     countryCode: '+34',
                                                     clientPhone: '',
-                                                    serviceId: '',
+                                                    serviceName: '',
+                                                    price: '' as any,
                                                     professionalId: '',
                                                     date: new Date().toISOString().split('T')[0],
                                                     time: '10:00',
@@ -405,7 +359,7 @@ export function BookingList() {
                                                 });
                                             }}
                                         >
-                                            {isOverbooking ? 'FORZAR RESERVA (SOBRETURNO)' : 'GUARDAR TURNO'}
+                                            GUARDAR TURNO
                                         </Button>
                                     </div>
                                 </div>
