@@ -19,6 +19,7 @@ export interface TeamMember {
     bio: string;
     image: string; // Base64
     pin?: string; // New: individual pin
+    showOnHome?: boolean; // New: toggle visibility on home page
 }
 
 export interface Booking {
@@ -117,6 +118,7 @@ interface ConfigContextType {
     updateGallery: (images: string[]) => void;
     updateTeam: (team: TeamMember[]) => void;
     addBooking: (booking: Booking) => void;
+    updateBooking: (booking: Booking) => void;
     updateBookingStatus: (id: string, status: Booking['status']) => void;
     deleteBooking: (id: string) => void;
     addReview: (review: Review) => void;
@@ -586,6 +588,31 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+
+
+    const updateBooking = async (booking: Booking) => {
+        setBookings(prev => prev.map(b => b.id === booking.id ? booking : b));
+
+        const { error } = await supabase.from('bookings').update({
+            client_name: booking.clientName,
+            client_phone: booking.clientPhone,
+            service_id: booking.serviceId,
+            service_name: booking.serviceName,
+            price: booking.price,
+            payment_method: booking.paymentMethod,
+            date: booking.date,
+            time: booking.time,
+            status: booking.status,
+            professional_id: booking.professionalId
+        }).eq('id', booking.id);
+
+        if (error) {
+            console.error('❌ Error al actualizar reserva:', error);
+        } else {
+            console.log('✅ Reserva actualizada exitosamente');
+        }
+    };
+
     const updateBookingStatus = async (id: string, status: Booking['status']) => {
         setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
         await supabase.from('bookings').update({ status }).eq('id', id);
@@ -747,6 +774,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             updateGallery,
             updateTeam,
             addBooking,
+
+            updateBooking,
             updateBookingStatus,
             deleteBooking,
             addReview,

@@ -12,7 +12,8 @@ import {
     isSpanishHoliday,
     toSpainDateString,
     getSpainNow,
-    getSlotsForDate
+    getSlotsForDate,
+    checkAvailability
 } from '@/utils/date-helpers';
 import { useConfig } from '@/context/ConfigContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -20,11 +21,12 @@ import { useLanguage } from '@/context/LanguageContext';
 interface CalendarProps {
     onSelect: (date: Date, time: string) => void;
     onBack: () => void;
+    currentServiceDuration?: number; // Optional content
 }
 
-export function Calendar({ onSelect, onBack }: CalendarProps) {
+export function Calendar({ onSelect, onBack, currentServiceDuration = 30 }: CalendarProps) {
     const { t } = useLanguage();
-    const { blockedDates, timeBlocks } = useConfig();
+    const { blockedDates, timeBlocks, bookings, services, team, professionalBlocks } = useConfig();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -143,7 +145,21 @@ export function Calendar({ onSelect, onBack }: CalendarProps) {
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                         {getSlotsForDate(selectedDate).filter(time => {
                             const dateStr = toSpainDateString(selectedDate);
-                            return !timeBlocks.some(block => block.date === dateStr && block.time === time);
+                            // 1. Basic Block: Specific manual time block
+                            const isManuallyBlocked = timeBlocks.some(block => block.date === dateStr && block.time === time);
+                            if (isManuallyBlocked) return false;
+
+                            // 2. Smart Capacity Check (Multi-staff & Duration)
+                            const isAvailable = checkAvailability(
+                                selectedDate,
+                                time,
+                                currentServiceDuration,
+                                bookings,
+                                services,
+                                team,
+                                professionalBlocks
+                            );
+                            return isAvailable;
                         }).map(time => (
                             <button
                                 key={time}

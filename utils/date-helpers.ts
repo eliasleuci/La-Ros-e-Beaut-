@@ -42,23 +42,28 @@ export function formatDate(date: Date | string): string {
     return `${day} de ${MONTHS[monthNum - 1]}`;
 }
 
-export function generateTimeSlots(startHour: number = 10, endHour: number = 20): string[] {
+export function generateTimeSlots(startHour: number = 8, endHour: number = 20, intervalMinutes: number = 30): string[] {
     const slots = [];
     for (let i = startHour; i < endHour; i++) {
-        slots.push(`${i}:00`);
-        slots.push(`${i}:30`);
+        for (let j = 0; j < 60; j += intervalMinutes) {
+            const hour = i.toString();
+            const minute = j.toString().padStart(2, '0');
+            slots.push(`${hour}:${minute}`);
+        }
     }
     return slots;
 }
 
-export function getSlotsForDate(date: Date): string[] {
+export function getSlotsForDate(date: Date, intervalMinutes: number = 30): string[] {
     const localizedDate = new Date(date.toLocaleString('en-US', { timeZone: SPAIN_TZ }));
     const day = localizedDate.getDay();
 
-    if (day === 6) { // Saturday
-        return generateTimeSlots(10, 14);
+    if (day === 0) { // Sunday
+        return [];
     }
-    return generateTimeSlots(10, 20); // Regular weekdays
+
+    // Mon-Sat: 8:00 - 20:00
+    return generateTimeSlots(8, 20, intervalMinutes);
 }
 
 /**
@@ -128,6 +133,7 @@ export function toSpainDateString(date: Date): string {
     return formatter.format(date);
 }
 
+
 /**
  * Normalizes a date to 00:00:00 in Spain timezone for comparison
  */
@@ -136,4 +142,134 @@ export function normalizeToSpain(date: Date): Date {
     // Standard Spain offset is +01:00 (CET) or +02:00 (CEST)
     // For simplicity, we use the date anchor.
     return new Date(`${dateStr}T00:00:00+01:00`);
+}
+
+/**
+ * Parses a duration string (e.g. "60 min", "1 h 30 min") into specific minutes
+ */
+export function parseDuration(durationStr: string): number {
+    if (!durationStr) return 0;
+
+    // Normalize string
+    const str = durationStr.toLowerCase().replace(/\s+/g, '');
+    let totalMinutes = 0;
+
+    // Check for "Xmin" or "Xm"
+    const minMatch = str.match(/(\d+)min/) || str.match(/(\d+)m/);
+    if (minMatch) {
+        totalMinutes += parseInt(minMatch[1], 10);
+    }
+
+    // Check for "Xh" or "Xhour" can be added if needed, but current data is "XX min"
+    // Just in case:
+    const hourMatch = str.match(/(\d+)h/);
+    if (hourMatch) {
+        totalMinutes += parseInt(hourMatch[1], 10) * 60;
+    }
+
+    // Fallback: if just a number is stored
+    if (totalMinutes === 0 && !isNaN(parseInt(str))) {
+        totalMinutes = parseInt(str, 10);
+    }
+
+    return totalMinutes;
+}
+
+/**
+ * Converts "HH:MM" string to minutes from midnight
+ */
+export function minutesFromMidnight(time: string): number {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+}
+
+/**
+ * Checks if a specific time slot is available considering:
+ * 1. Team capacity (total staff)
+ * 2. Existing bookings at that time (and overlapping ones)
+ * 3. Specific professional blocks (vacations/days off)
+ * 4. The duration of the *new* service being requested (look-ahead)
+ */
+export function checkAvailability(
+    date: Date,
+    time: string,
+    durationMinutes: number,
+    bookings: any[], // Type 'Booking' ideally, using any to avoid circular dependency in utils if strict
+    services: any[], // Type 'Service'
+    team: any[],     // Type 'TeamMember'
+    professionalBlocks: any[] // Type 'ProfessionalBlock'
+): boolean {
+    const dateStr = toSpainDateString(date);
+
+    // 1. Calculate requested time range [start, end)
+    const requestStart = minutesFromMidnight(time);
+    const requestEnd = requestStart + durationMinutes;
+
+    // 2. Identify Total Staff ID Pool
+    // Assumes all staff can do all services unless logic changes.
+    const allStaffIds = team.map(m => m.id);
+
+    // 3. Filter out staff who are BLOCKED for this entire day (vacations, etc.)
+    // Note: Blocks currently are "All Day" based on 'date'. If blocks had time ranges, we'd check overlap.
+    const blockedStaffIds = professionalBlocks
+        .filter(b => b.date === dateStr)
+        .map(b => b.professionalId);
+
+    const availableStaffIds = allStaffIds.filter(id => !blockedStaffIds.includes(id));
+
+    // If no staff is working today, 0 capacity.
+    if (availableStaffIds.length === 0) return false;
+
+    // 4. Check collisions for EACH time slice of the requested duration
+    // We need to ensure that for the ENTIRE duration of the new service, 
+    // there is at least 1 person free.
+    // However, it's simpler: At any point [t] in [requestStart, requestEnd), 
+    // count active bookings. If active_bookings >= available_staff, then COLLISION.
+
+    // Check every 15 minutes interval within the requested duration
+    // This provides "fine" granularity as requested.
+    for (let t = requestStart; t < requestEnd; t += 15) {
+        let occupiedCount = 0;
+
+        // Count who is busy at time 't'
+        for (const booking of bookings) {
+            // Only care about this date
+            // Note: Booking.date is ISO with timezone. We need to match YYYY-MM-DD.
+            if (!booking.date.startsWith(dateStr)) continue;
+            // Ignore cancelled/absent if needed? usually 'confirmed' or 'pending' consume slots.
+            // Assuming 'absent' frees up? Safer to block if in doubt, but usually 'absent' is past.
+            const status = booking.status;
+            if (status === 'absent' || status === 'cancelled') continue;
+
+            // Calculate booking range
+            const bookingStart = minutesFromMidnight(booking.time);
+
+            // Find service duration for this booking
+            const bookingService = services.find(s => s.id === booking.serviceId);
+            const bookingDuration = bookingService ? parseDuration(bookingService.duration) : 30; // Default 30 min safety
+
+            const bookingEnd = bookingStart + bookingDuration;
+
+            // Check overlap
+            // If the booking covers time 't'
+            if (t >= bookingStart && t < bookingEnd) {
+                // This booking consumes a slot at time 't'
+                occupiedCount++;
+            }
+        }
+
+        // Capacity Check at time 't'
+        // If occupied staff >= total available staff, then this specific 15-min slice is FULL.
+        // Therefore the whole requested service cannot start at 'time'.
+        // Also check if we go past closing time (20:00 = 1200 mins)
+        // If operation hours are 8-20, we shouldn't allow a booking that ends after 20:00
+        const closingTime = 20 * 60; // 1200
+        if (t >= closingTime) return false;
+
+        if (occupiedCount >= availableStaffIds.length) {
+            return false;
+        }
+    }
+
+    return true;
 }

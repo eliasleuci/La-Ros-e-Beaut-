@@ -8,7 +8,9 @@ export function TeamSection() {
     const { team } = useConfig();
     const { t } = useLanguage();
 
-    if (team.length === 0) return null;
+    const visibleTeam = team.filter(m => m.showOnHome !== false);
+
+    if (visibleTeam.length === 0) return null;
 
     return (
         <section className="w-full max-w-4xl mx-auto mt-24 px-4 animate-in fade-in duration-700 delay-200">
@@ -18,7 +20,7 @@ export function TeamSection() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 justify-center">
-                {team.map((member) => (
+                {visibleTeam.map((member) => (
                     <div
                         key={member.id}
                         className="bg-white p-6 border border-stone-100 text-center hover:shadow-lg transition-all duration-500"

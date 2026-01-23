@@ -17,6 +17,7 @@ export function TeamManager() {
     const [bio, setBio] = useState('');
     const [image, setImage] = useState('');
     const [pin, setPin] = useState('0000');
+    const [showOnHome, setShowOnHome] = useState(true);
 
     const resetForm = () => {
         setId('');
@@ -25,6 +26,7 @@ export function TeamManager() {
         setBio('');
         setImage('');
         setPin('0000');
+        setShowOnHome(true);
         setIsEditing(false);
     };
 
@@ -35,6 +37,7 @@ export function TeamManager() {
         setBio(member.bio);
         setImage(member.image);
         setPin(member.pin || '0000');
+        setShowOnHome(member.showOnHome !== false);
         setIsEditing(true);
     };
 
@@ -52,7 +55,8 @@ export function TeamManager() {
             role,
             bio,
             image,
-            pin
+            pin,
+            showOnHome
         };
 
         if (id) {
@@ -123,6 +127,19 @@ export function TeamManager() {
                             />
                         </div>
 
+                        <div className="flex items-center gap-3 pt-2">
+                            <input
+                                type="checkbox"
+                                id="showOnHome"
+                                checked={showOnHome}
+                                onChange={e => setShowOnHome(e.target.checked)}
+                                className="w-5 h-5 rounded border-stone-300 text-gold-500 focus:ring-gold-500"
+                            />
+                            <label htmlFor="showOnHome" className="text-sm font-bold text-stone-600 select-none cursor-pointer">
+                                Mostrar en Página Principal
+                            </label>
+                        </div>
+
                         <div className="flex justify-end pt-4 border-t border-stone-100">
                             <Button type="submit">Guardar Especialista</Button>
                         </div>
@@ -138,7 +155,8 @@ export function TeamManager() {
                             <div className="flex-1">
                                 <h3 className="font-bold text-stone-700">{member.name}</h3>
                                 <p className="text-gold-600 text-xs font-bold">{member.role}</p>
-                                <p className="text-[10px] text-stone-400 font-mono">ID: {member.pin || '0000'}</p>
+                                <p className="text-gold-600 text-xs font-bold">{member.role}</p>
+                                <p className="text-[10px] text-stone-400 font-mono">ID: {member.pin || '0000'} • {member.showOnHome !== false ? '✅ Visible' : '👁️ Oculto'}</p>
                             </div>
                             <div className="flex gap-3 transition-opacity">
                                 <button

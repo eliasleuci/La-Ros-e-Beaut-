@@ -4,18 +4,23 @@ import React, { useState } from 'react';
 import { useConfig, Booking } from '@/context/ConfigContext';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { formatDate, getSlotsForDate } from '@/utils/date-helpers';
+import { formatDate, getSlotsForDate, checkAvailability, parseDuration } from '@/utils/date-helpers';
 import { ClinicalHistoryModal } from '../staff/ClinicalHistoryModal';
 
 export function BookingList() {
-    const { bookings, deleteBooking, updateBookingStatus, team, services, addBooking } = useConfig();
+    const { bookings, deleteBooking, updateBookingStatus, team, services, addBooking, updateBooking, professionalBlocks } = useConfig();
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
     const [selectedSummaryDate, setSelectedSummaryDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [viewingHistory, setViewingHistory] = useState<Booking | null>(null);
+    const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+
+    // Manual Booking State
     const [isCreating, setIsCreating] = useState(false);
     const [newBooking, setNewBooking] = useState({
         clientName: '',
+        countryCode: '+34',
         clientPhone: '',
         serviceId: '',
         professionalId: '',
@@ -23,6 +28,51 @@ export function BookingList() {
         time: '10:00',
         paymentMethod: 'cash' as 'cash' | 'card'
     });
+
+    // Overbooking Logic
+    const [isOverbooking, setIsOverbooking] = useState(false);
+    const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
+
+    // Check availability whenever relevant fields change
+    React.useEffect(() => {
+        if (isCreating && newBooking.serviceId && newBooking.date && newBooking.time) {
+            const service = services.find(s => s.id === newBooking.serviceId);
+            if (!service) return;
+
+            const duration = parseDuration(service.duration);
+            const dateObj = new Date(newBooking.date + 'T12:00:00'); // Midday to avoid timezone shifting on date part
+
+            // We need to pass the *specific* professional if selected, or the whole team if 'any'
+            // checkAvailability usually checks if *anyone* is free. 
+            // If we selected a specific person, we should ideally restrict the team checked?
+            // The current checkAvailability helper takes 'team'. If we want to check a SPECIFIC person, 
+            // we should probably filter the team array passed to it.
+
+            let teamToCheck = team;
+            if (newBooking.professionalId) {
+                teamToCheck = team.filter(t => t.id === newBooking.professionalId);
+            }
+
+            const isAvailable = checkAvailability(
+                dateObj,
+                newBooking.time,
+                duration,
+                bookings,
+                services,
+                teamToCheck,
+                professionalBlocks
+            );
+
+            if (!isAvailable) {
+                setAvailabilityWarning('⚠️ Horario NO disponible (Capacidad llena o Profesional ocupado).');
+            } else {
+                setAvailabilityWarning(null);
+                setIsOverbooking(false); // Reset overbooking if it becomes available naturally
+            }
+        } else {
+            setAvailabilityWarning(null);
+        }
+    }, [newBooking.date, newBooking.time, newBooking.serviceId, newBooking.professionalId, isCreating, bookings, services, team, professionalBlocks]);
 
     const getProfessionalName = (id?: string) => {
         if (!id) return 'Sin Asignar';
@@ -38,9 +88,34 @@ export function BookingList() {
     };
 
     const filteredBookings = bookings.filter(b => {
+        // Filter by date (ensure we compare YYYY-MM-DD parts)
+        const bookingDate = b.date.split('T')[0];
+        if (bookingDate !== selectedDate) return false;
+
+        // Filter by status
         if (filterStatus === 'all') return true;
         return b.status === filterStatus;
-    });
+    }).sort((a, b) => a.time.localeCompare(b.time));
+
+    const getWhatsAppLink = (booking: Booking) => {
+        if (!booking.clientPhone) return '';
+
+        let phone = booking.clientPhone.replace(/\D/g, '');
+        // Si el formato original NO tenía un '+', asumimos que es un número local de España
+        // y le agregamos el 34 al principio.
+        if (!booking.clientPhone.includes('+')) {
+            phone = '34' + phone;
+        }
+
+        // Usar formato simple DD/MM
+        const dateParts = booking.date.split('T')[0].split('-');
+        const date = `${dateParts[2]}/${dateParts[1]}`;
+        const time = booking.time;
+
+        const message = `Hola ${booking.clientName}! 👋 Te recordamos tu turno para *${booking.serviceName}* el día *${date}* a las *${time} hs*. Te esperamos en *La Rosée Beauté*! 🌸`;
+
+        return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    };
 
     const handlePrint = () => {
         const printContent = document.getElementById('daily-summary-content');
@@ -139,6 +214,16 @@ export function BookingList() {
                         <option value="attended">Atendidos</option>
                         <option value="absent">Ausentes</option>
                     </select>
+
+                    <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-stone-400 uppercase hidden md:inline">Fecha:</label>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="bg-stone-50 border border-stone-200 text-stone-600 text-sm rounded-xl px-4 py-2 outline-none focus:border-gold-300"
+                        />
+                    </div>
                 </div>
 
                 {/* Manual Booking Form */}
@@ -168,14 +253,30 @@ export function BookingList() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">WhatsApp (opcional)</label>
-                                        <input
-                                            type="text"
-                                            value={newBooking.clientPhone}
-                                            onChange={e => setNewBooking({ ...newBooking, clientPhone: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-stone-200"
-                                            placeholder="Ej: 34612345678"
-                                        />
+                                        <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">WhatsApp/Teléfono</label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={newBooking.countryCode}
+                                                onChange={e => setNewBooking({ ...newBooking, countryCode: e.target.value })}
+                                                className="px-2 py-3 rounded-xl border border-stone-200 bg-white text-xs font-medium w-[90px]"
+                                            >
+                                                <option value="+34">ES +34</option>
+                                                <option value="">OTRO</option>
+                                                <option value="+33">FR +33</option>
+                                                <option value="+44">GB +44</option>
+                                                <option value="+49">DE +49</option>
+                                                <option value="+39">IT +39</option>
+                                                <option value="+1">US +1</option>
+                                                <option value="+54">AR +54</option>
+                                            </select>
+                                            <input
+                                                type="text"
+                                                value={newBooking.clientPhone}
+                                                onChange={e => setNewBooking({ ...newBooking, clientPhone: e.target.value })}
+                                                className="flex-1 px-4 py-3 rounded-xl border border-stone-200"
+                                                placeholder="Número"
+                                            />
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Servicio</label>
@@ -221,7 +322,7 @@ export function BookingList() {
                                             onChange={e => setNewBooking({ ...newBooking, time: e.target.value })}
                                             className="w-full px-4 py-3 rounded-xl border border-stone-200"
                                         >
-                                            {getSlotsForDate(new Date(newBooking.date + 'T12:00:00')).map(t => (
+                                            {getSlotsForDate(new Date(newBooking.date + 'T12:00:00'), 15).map(t => (
                                                 <option key={t} value={t}>{t}</option>
                                             ))}
                                         </select>
@@ -243,9 +344,31 @@ export function BookingList() {
                                             </button>
                                         </div>
                                     </div>
+
+                                    {/* Availability Warning & Overbooking Toggle */}
+                                    {availabilityWarning && (
+                                        <div className="bg-red-50 p-4 rounded-xl border border-red-100 animate-pulse">
+                                            <p className="text-red-500 font-bold text-xs mb-2">{availabilityWarning}</p>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="overbooking"
+                                                    checked={isOverbooking}
+                                                    onChange={(e) => setIsOverbooking(e.target.checked)}
+                                                    className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                                                />
+                                                <label htmlFor="overbooking" className="text-xs font-bold text-red-600 cursor-pointer select-none">
+                                                    🔓 Habilitar Sobreturno (Forzar Reserva)
+                                                </label>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="pt-2">
                                         <Button
                                             fullWidth
+                                            disabled={!!availabilityWarning && !isOverbooking}
+                                            className={isOverbooking ? "bg-red-600 hover:bg-red-700 border-red-600" : ""}
                                             onClick={() => {
                                                 if (!newBooking.clientName || !newBooking.serviceId) {
                                                     alert('Por favor complete Nombre y Servicio');
@@ -255,7 +378,7 @@ export function BookingList() {
                                                 const bookingToAdd: any = {
                                                     id: crypto.randomUUID(),
                                                     clientName: newBooking.clientName,
-                                                    clientPhone: newBooking.clientPhone,
+                                                    clientPhone: newBooking.clientPhone ? `${newBooking.countryCode} ${newBooking.clientPhone}`.trim() : '',
                                                     serviceId: newBooking.serviceId,
                                                     serviceName: service?.name || 'Servicio',
                                                     price: service?.promo_price || service?.price || 0,
@@ -268,8 +391,11 @@ export function BookingList() {
                                                 };
                                                 addBooking(bookingToAdd);
                                                 setIsCreating(false);
+                                                setIsOverbooking(false);
+                                                setAvailabilityWarning(null);
                                                 setNewBooking({
                                                     clientName: '',
+                                                    countryCode: '+34',
                                                     clientPhone: '',
                                                     serviceId: '',
                                                     professionalId: '',
@@ -279,7 +405,7 @@ export function BookingList() {
                                                 });
                                             }}
                                         >
-                                            GUARDAR TURNO
+                                            {isOverbooking ? 'FORZAR RESERVA (SOBRETURNO)' : 'GUARDAR TURNO'}
                                         </Button>
                                     </div>
                                 </div>
@@ -367,6 +493,9 @@ export function BookingList() {
                                                 {(booking.status || 'pending').toUpperCase()}
                                             </span>
                                         </div>
+                                        {booking.clientPhone && (
+                                            <p className="text-stone-500 text-xs font-mono mb-1">📞 {booking.clientPhone}</p>
+                                        )}
                                         <p className="text-stone-400 text-sm font-medium mb-3">{booking.serviceName} • {getProfessionalName(booking.professionalId)}</p>
 
                                         <div className="flex items-center gap-4 text-xs">
@@ -393,12 +522,45 @@ export function BookingList() {
 
                                         <div className="flex gap-2">
                                             <button
+                                                onClick={() => {
+                                                    // Normalize legacy data: if phone doesn't start with +, prepend +34
+                                                    // This ensures the modal parsing logic works correctly (it expects "+Code Number")
+                                                    let phone = booking.clientPhone || '';
+                                                    if (phone && !phone.includes('+')) {
+                                                        phone = `+34 ${phone}`;
+                                                    }
+
+                                                    setEditingBooking({
+                                                        ...booking,
+                                                        clientPhone: phone
+                                                    });
+                                                }}
+                                                className="p-2 text-stone-300 hover:text-blue-500 transition-colors"
+                                                title="Editar Reserva"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
                                                 onClick={() => setViewingHistory(booking)}
                                                 className="p-2 text-stone-300 hover:text-gold-600 transition-colors"
                                                 title="Ver Ficha Clínica"
                                             >
                                                 📋
                                             </button>
+
+                                            {booking.clientPhone && (
+                                                <a
+                                                    href={getWhatsAppLink(booking)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 text-[#25D366] hover:text-[#1da851] transition-colors"
+                                                    title="Enviar Recordatorio por WhatsApp"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                                        <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z" />
+                                                    </svg>
+                                                </a>
+                                            )}
                                             <button
                                                 onClick={() => {
                                                     if (confirm('¿Eliminar este turno?')) deleteBooking(booking.id);
@@ -419,6 +581,178 @@ export function BookingList() {
                     )}
                 </div>
             </Card>
+
+            {editingBooking && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="font-serif font-bold text-2xl text-stone-800">Editar Reserva</h3>
+                            <button onClick={() => setEditingBooking(null)} className="text-stone-400 hover:text-stone-600">✕</button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Nombre del Cliente</label>
+                                    <input
+                                        type="text"
+                                        value={editingBooking.clientName}
+                                        onChange={e => setEditingBooking({ ...editingBooking, clientName: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">WhatsApp/Teléfono</label>
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={editingBooking.clientPhone && editingBooking.clientPhone.includes('+') ? editingBooking.clientPhone.split(' ')[0] : '+34'}
+                                            onChange={e => {
+                                                const currentNumber = editingBooking.clientPhone ? editingBooking.clientPhone.split(' ').slice(1).join(' ') : '';
+                                                setEditingBooking({
+                                                    ...editingBooking,
+                                                    clientPhone: `${e.target.value} ${currentNumber}`
+                                                });
+                                            }}
+                                            className="px-2 py-3 rounded-xl border border-stone-200 bg-white text-xs font-medium w-[90px]"
+                                        >
+                                            <option value="+34">ES +34</option>
+                                            <option value="">OTRO</option>
+                                            <option value="+33">FR +33</option>
+                                            <option value="+44">GB +44</option>
+                                            <option value="+49">DE +49</option>
+                                            <option value="+39">IT +39</option>
+                                            <option value="+1">US +1</option>
+                                            <option value="+54">AR +54</option>
+                                        </select>
+                                        <input
+                                            type="text"
+                                            value={editingBooking.clientPhone ? (editingBooking.clientPhone.includes('+') ? editingBooking.clientPhone.split(' ').slice(1).join(' ') : editingBooking.clientPhone) : ''}
+                                            onChange={e => {
+                                                const currentCode = editingBooking.clientPhone && editingBooking.clientPhone.includes('+') ? editingBooking.clientPhone.split(' ')[0] : '+34';
+                                                setEditingBooking({
+                                                    ...editingBooking,
+                                                    clientPhone: `${currentCode} ${e.target.value}`
+                                                });
+                                            }}
+                                            className="flex-1 px-4 py-3 rounded-xl border border-stone-200"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Servicio</label>
+                                    <select
+                                        value={editingBooking.serviceId}
+                                        onChange={e => {
+                                            const s = services.find(srv => srv.id === e.target.value);
+                                            setEditingBooking({
+                                                ...editingBooking,
+                                                serviceId: e.target.value,
+                                                serviceName: s ? s.name : editingBooking.serviceName,
+                                                price: s ? (s.promo_price || s.price) : editingBooking.price
+                                            });
+                                        }}
+                                        className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                    >
+                                        {services.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} (€{s.price})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Profesional</label>
+                                    <select
+                                        value={editingBooking.professionalId || ''}
+                                        onChange={e => setEditingBooking({ ...editingBooking, professionalId: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                    >
+                                        <option value="">Sin Asignar</option>
+                                        {team.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Fecha</label>
+                                    <input
+                                        type="date"
+                                        value={editingBooking.date.split('T')[0]}
+                                        onChange={e => setEditingBooking({ ...editingBooking, date: e.target.value + 'T' + editingBooking.time + ':00+01:00' })}
+                                        className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Hora</label>
+                                    <select
+                                        value={editingBooking.time}
+                                        onChange={e => setEditingBooking({
+                                            ...editingBooking,
+                                            time: e.target.value,
+                                            date: editingBooking.date.split('T')[0] + 'T' + e.target.value + ':00+01:00'
+                                        })}
+                                        className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                    >
+                                        {getSlotsForDate(new Date(editingBooking.date), 15).map(t => (
+                                            <option key={t} value={t}>{t}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Método de Pago</label>
+                                    <div className="flex gap-4">
+                                        <button
+                                            onClick={() => setEditingBooking({ ...editingBooking, paymentMethod: 'cash' })}
+                                            className={`flex-1 py-3 rounded-xl border transition-all font-bold text-xs ${editingBooking.paymentMethod === 'cash' ? 'bg-[#C5A02E] text-white border-[#C5A02E]' : 'bg-white text-stone-400 border-stone-200'}`}
+                                        >
+                                            EFECTIVO
+                                        </button>
+                                        <button
+                                            onClick={() => setEditingBooking({ ...editingBooking, paymentMethod: 'card' })}
+                                            className={`flex-1 py-3 rounded-xl border transition-all font-bold text-xs ${editingBooking.paymentMethod === 'card' ? 'bg-[#C5A02E] text-white border-[#C5A02E]' : 'bg-white text-stone-400 border-stone-200'}`}
+                                        >
+                                            TARJETA
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Estado</label>
+                                    <select
+                                        value={editingBooking.status}
+                                        onChange={e => setEditingBooking({ ...editingBooking, status: e.target.value as any })}
+                                        className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                    >
+                                        <option value="pending">PENDIENTE</option>
+                                        <option value="confirmed">CONFIRMADO</option>
+                                        <option value="attended">ATENDIDO</option>
+                                        <option value="absent">AUSENTE</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 flex gap-4">
+                            <Button
+                                variant="outline"
+                                fullWidth
+                                onClick={() => setEditingBooking(null)}
+                            >
+                                CANCELAR
+                            </Button>
+                            <Button
+                                variant="gold"
+                                fullWidth
+                                onClick={() => {
+                                    updateBooking(editingBooking);
+                                    setEditingBooking(null);
+                                }}
+                            >
+                                GUARDAR CAMBIOS
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {viewingHistory && (
                 <ClinicalHistoryModal
