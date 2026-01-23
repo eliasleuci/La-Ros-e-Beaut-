@@ -640,23 +640,26 @@ export function BookingList() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Servicio</label>
-                                    <select
-                                        value={editingBooking.serviceId}
-                                        onChange={e => {
-                                            const s = services.find(srv => srv.id === e.target.value);
-                                            setEditingBooking({
-                                                ...editingBooking,
-                                                serviceId: e.target.value,
-                                                serviceName: s ? s.name : editingBooking.serviceName,
-                                                price: s ? (s.promo_price || s.price) : editingBooking.price
-                                            });
-                                        }}
+                                    <input
+                                        type="text"
+                                        value={editingBooking.serviceName}
+                                        onChange={e => setEditingBooking({ ...editingBooking, serviceName: e.target.value })}
                                         className="w-full px-4 py-3 rounded-xl border border-stone-200"
-                                    >
-                                        {services.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name} (€{s.price})</option>
-                                        ))}
-                                    </select>
+                                        placeholder="Ej: Lifting de pestañas + depilación"
+                                    />
+                                    <p className="text-xs text-stone-400 mt-1">Puedes editar libremente el nombre del servicio</p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Precio (€)</label>
+                                    <input
+                                        type="number"
+                                        value={editingBooking.price}
+                                        onChange={e => setEditingBooking({ ...editingBooking, price: parseFloat(e.target.value) || 0 })}
+                                        className="w-full px-4 py-3 rounded-xl border border-stone-200"
+                                        placeholder="0"
+                                        min="0"
+                                        step="0.01"
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Profesional</label>

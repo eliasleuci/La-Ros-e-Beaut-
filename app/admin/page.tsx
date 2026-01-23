@@ -13,6 +13,7 @@ import { TeamManager } from '@/components/admin/TeamManager';
 import { BookingList } from '@/components/admin/BookingList';
 import { ReviewManager } from '@/components/admin/ReviewManager';
 import { ExpenseManager } from '@/components/admin/ExpenseManager';
+import { ClientSearch } from '@/components/admin/ClientSearch';
 
 export default function AdminPage() {
     const { services, businessPhone, instagramLink, categoryOrder, adminPin, updateServices, updatePhone, updateInstagramLink, updateCategoryOrder } = useConfig();
@@ -235,6 +236,11 @@ export default function AdminPage() {
                     {/* Agenda - Full Width Top Row */}
                     <div className="md:col-span-12 animate-in fade-in duration-700">
                         <BookingList />
+                    </div>
+
+                    {/* Client Search - Full Width Second Row */}
+                    <div className="md:col-span-12 animate-in fade-in duration-700">
+                        <ClientSearch />
                     </div>
 
                     {/* Left Column */}

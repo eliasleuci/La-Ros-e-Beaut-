@@ -577,7 +577,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             date: booking.date,
             time: booking.time,
             status: booking.status,
-            professional_id: booking.professionalId
+            professional_id: booking.professionalId || null
         });
 
         if (error) {
@@ -603,7 +603,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             date: booking.date,
             time: booking.time,
             status: booking.status,
-            professional_id: booking.professionalId
+            professional_id: booking.professionalId || null
         }).eq('id', booking.id);
 
         if (error) {
