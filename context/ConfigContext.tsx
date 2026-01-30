@@ -41,7 +41,7 @@ export interface ClinicalRecord {
     id: string;
     clientName: string;
     clientPhone: string;
-    professionalId: string;
+    professionalId: string | null;
     professionalName: string;
     date: string;
     treatment: string;
@@ -642,7 +642,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
     const addClinicalRecord = async (record: ClinicalRecord) => {
         setClinicalRecords(prev => [record, ...prev]);
-        await supabase.from('clinical_records').insert({
+        const { error } = await supabase.from('clinical_records').insert({
             id: record.id,
             client_name: record.clientName,
             client_phone: record.clientPhone,
@@ -652,6 +652,13 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             treatment: record.treatment,
             notes: record.notes
         });
+
+        if (error) {
+            console.error('❌ Error saving clinical record to Supabase:', error);
+            alert('Error al guardar el registro: ' + error.message);
+        } else {
+            console.log('✅ Registro clínico guardado en Supabase');
+        }
     };
 
     const updateClinicalRecord = async (record: ClinicalRecord) => {

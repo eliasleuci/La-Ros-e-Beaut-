@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useConfig, ExpenseCategory, Expense } from '@/context/ConfigContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { formatDate } from '@/utils/date-helpers';
 
 export function ExpenseManager() {
     const {
@@ -154,8 +155,8 @@ export function ExpenseManager() {
                     <button
                         onClick={() => setActiveTab('categories')}
                         className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'categories'
-                                ? 'bg-[#C5A02E] text-white'
-                                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                            ? 'bg-[#C5A02E] text-white'
+                            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                             }`}
                     >
                         Categorías
@@ -163,8 +164,8 @@ export function ExpenseManager() {
                     <button
                         onClick={() => setActiveTab('expenses')}
                         className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'expenses'
-                                ? 'bg-[#C5A02E] text-white'
-                                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                            ? 'bg-[#C5A02E] text-white'
+                            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                             }`}
                     >
                         Registrar Gasto
@@ -340,8 +341,8 @@ export function ExpenseManager() {
                                                         type="button"
                                                         onClick={() => setExpensePaymentMethod(method)}
                                                         className={`flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-colors ${expensePaymentMethod === method
-                                                                ? 'bg-[#C5A02E] text-white'
-                                                                : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'
+                                                            ? 'bg-[#C5A02E] text-white'
+                                                            : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'
                                                             }`}
                                                     >
                                                         {getPaymentMethodLabel(method)}
@@ -378,7 +379,7 @@ export function ExpenseManager() {
                                                         <p className="text-sm text-stone-600 mt-1">{expense.description}</p>
                                                     )}
                                                     <div className="flex gap-3 mt-2 text-xs text-stone-400">
-                                                        <span>{new Date(expense.date).toLocaleDateString('es-ES')}</span>
+                                                        <span>{formatDate(expense.date)}</span>
                                                         <span>•</span>
                                                         <span>{getPaymentMethodLabel(expense.paymentMethod)}</span>
                                                     </div>

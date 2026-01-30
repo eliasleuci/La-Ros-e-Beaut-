@@ -30,7 +30,7 @@ export function ClinicalHistoryModal({ booking, onClose, professionalName }: Cli
             id: crypto.randomUUID(),
             clientName: booking.clientName,
             clientPhone: booking.clientPhone,
-            professionalId: booking.professionalId || 'unknown',
+            professionalId: booking.professionalId || null,
             professionalName: professionalName,
             date: new Date().toISOString(),
             treatment: booking.serviceName,
