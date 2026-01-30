@@ -8,7 +8,7 @@ import { formatDate, getSlotsForDate, checkAvailability, parseDuration } from '@
 import { ClinicalHistoryModal } from '../staff/ClinicalHistoryModal';
 
 export function BookingList() {
-    const { bookings, deleteBooking, updateBookingStatus, team, services, addBooking, updateBooking, professionalBlocks } = useConfig();
+    const { bookings, deleteBooking, updateBookingStatus, team, services, addBooking, updateBooking, professionalBlocks, expenses } = useConfig();
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
     const [selectedSummaryDate, setSelectedSummaryDate] = useState(new Date().toISOString().split('T')[0]);
@@ -154,6 +154,15 @@ export function BookingList() {
 
     const cashBookings = targetDateBookings.filter(b => b.paymentMethod === 'cash');
     const cardBookings = targetDateBookings.filter(b => b.paymentMethod === 'card');
+
+    // Expenses Calculation for Net Balance
+    const targetDateExpenses = expenses.filter(e => e.date === selectedSummaryDate);
+
+    const cashExpenses = targetDateExpenses.filter(e => e.paymentMethod === 'cash');
+    const cashExpensesTotal = cashExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    const cardExpenses = targetDateExpenses.filter(e => e.paymentMethod === 'card' || e.paymentMethod === 'transfer');
+    const cardExpensesTotal = cardExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 
     return (
         <div className="space-y-6 relative">
@@ -400,10 +409,39 @@ export function BookingList() {
                                         <p className="text-xs text-stone-400 font-bold">TOTAL EFECTIVO</p>
                                         <p className="text-2xl font-bold text-emerald-600">€{cashTotal.toLocaleString()}</p>
                                     </div>
+
+                                    {/* Gastos en Efectivo */}
+                                    <div className="mt-8 pt-4 border-t border-dashed border-stone-200">
+                                        <h4 className="text-xs font-bold text-stone-400 uppercase mb-4 print-title">Gastos (Efectivo)</h4>
+                                        <div className="space-y-2 mb-4">
+                                            {cashExpenses.length === 0 ? (
+                                                <p className="text-xs text-stone-300 italic">No hay gastos.</p>
+                                            ) : (
+                                                cashExpenses.map(e => (
+                                                    <div key={e.id} className="flex justify-between text-sm py-1 border-b border-stone-100 print-item">
+                                                        <span className="text-stone-600 text-xs">{e.categoryName} - {e.description || 'Sin descripción'}</span>
+                                                        <span className="font-bold text-red-400">-€{e.amount.toLocaleString()}</span>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-stone-400 font-bold">TOTAL GASTOS</p>
+                                            <p className="text-xl font-bold text-red-500">-€{cashExpensesTotal.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Neto Efectivo */}
+                                    <div className="mt-6 pt-4 border-t-2 border-stone-200">
+                                        <div className="text-right print-total">
+                                            <p className="text-xs text-stone-800 font-bold uppercase tracking-widest">NETO EN CAJA</p>
+                                            <p className="text-3xl font-bold text-stone-800">€{(cashTotal - cashExpensesTotal).toLocaleString()}</p>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="print-section">
-                                    <h4 className="text-xs font-bold text-stone-400 uppercase mb-4 print-title">Tarjeta</h4>
+                                    <h4 className="text-xs font-bold text-stone-400 uppercase mb-4 print-title">Tarjeta / Banco</h4>
                                     <div className="space-y-2 mb-4">
                                         {cardBookings.map(b => (
                                             <div key={b.id} className="flex justify-between text-sm py-1 border-b border-stone-100 print-item">
@@ -415,6 +453,51 @@ export function BookingList() {
                                     <div className="text-right print-total">
                                         <p className="text-xs text-stone-400 font-bold">TOTAL TARJETA</p>
                                         <p className="text-2xl font-bold text-blue-600">€{cardTotal.toLocaleString()}</p>
+                                    </div>
+
+                                    {/* Gastos en Tarjeta */}
+                                    <div className="mt-8 pt-4 border-t border-dashed border-stone-200">
+                                        <h4 className="text-xs font-bold text-stone-400 uppercase mb-4 print-title">Gastos (Tarjeta/Transf)</h4>
+                                        <div className="space-y-2 mb-4">
+                                            {cardExpenses.length === 0 ? (
+                                                <p className="text-xs text-stone-300 italic">No hay gastos.</p>
+                                            ) : (
+                                                cardExpenses.map(e => (
+                                                    <div key={e.id} className="flex justify-between text-sm py-1 border-b border-stone-100 print-item">
+                                                        <span className="text-stone-600 text-xs">{e.categoryName} - {e.description || 'Sin descripción'}</span>
+                                                        <span className="font-bold text-red-400">-€{e.amount.toLocaleString()}</span>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-stone-400 font-bold">TOTAL GASTOS</p>
+                                            <p className="text-xl font-bold text-red-500">-€{cardExpensesTotal.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Neto Tarjeta */}
+                                    <div className="mt-6 pt-4 border-t-2 border-stone-200">
+                                        <div className="text-right print-total">
+                                            <p className="text-xs text-stone-800 font-bold uppercase tracking-widest">NETO BANCO</p>
+                                            <p className="text-3xl font-bold text-stone-800">€{(cardTotal - cardExpensesTotal).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Resumen Global */}
+                                <div className="md:col-span-2 mt-8 pt-6 border-t-4 border-stone-100 print-section">
+                                    <div className="flex justify-between items-center bg-stone-50 p-6 rounded-2xl">
+                                        <div>
+                                            <p className="text-xs font-bold text-stone-400 uppercase mb-1">BALANCE FINAL DEL DÍA</p>
+                                            <h3 className="text-4xl font-serif font-bold text-stone-800">
+                                                €{((cashTotal + cardTotal) - (cashExpensesTotal + cardExpensesTotal)).toLocaleString()}
+                                            </h3>
+                                        </div>
+                                        <div className="text-right text-xs space-y-1 text-stone-400">
+                                            <p>Ingresos Totales: <span className="text-emerald-600 font-bold">+€{(cashTotal + cardTotal).toLocaleString()}</span></p>
+                                            <p>Gastos Totales: <span className="text-red-500 font-bold">-€{(cashExpensesTotal + cardExpensesTotal).toLocaleString()}</span></p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
