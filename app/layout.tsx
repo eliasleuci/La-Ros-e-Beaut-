@@ -16,7 +16,7 @@ const lato = Lato({
 });
 
 export const metadata: Metadata = {
-  title: "La Rosée Beauté | Reserva tu Turno",
+  title: "Beauty Room by Shay | Reserva tu Turno",
   description: "Tratamientos estéticos exclusivos para tu bienestar.",
 };
 
