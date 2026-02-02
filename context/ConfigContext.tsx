@@ -29,7 +29,9 @@ export interface Booking {
     serviceId: string;
     serviceName: string;
     price: number;
-    paymentMethod: 'cash' | 'card';
+    paymentMethod: 'cash' | 'card' | 'mixed';
+    cashAmount?: number;
+    cardAmount?: number;
     date: string; // ISO
     time: string;
     createdAt: string;
@@ -361,6 +363,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                             serviceId: b.service_id,
                             serviceName: b.service_name,
                             paymentMethod: b.payment_method,
+                            cashAmount: b.cash_amount, // New mapped field
+                            cardAmount: b.card_amount, // New mapped field
                             professionalId: b.professional_id,
                             createdAt: b.created_at
                         }));
@@ -574,6 +578,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             service_name: booking.serviceName,
             price: booking.price,
             payment_method: booking.paymentMethod,
+            cash_amount: booking.cashAmount || (booking.paymentMethod === 'cash' ? booking.price : 0),
+            card_amount: booking.cardAmount || (booking.paymentMethod === 'card' ? booking.price : 0),
             date: booking.date,
             time: booking.time,
             status: booking.status,
@@ -600,6 +606,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             service_name: booking.serviceName,
             price: booking.price,
             payment_method: booking.paymentMethod,
+            cash_amount: booking.cashAmount || (booking.paymentMethod === 'cash' ? booking.price : 0),
+            card_amount: booking.cardAmount || (booking.paymentMethod === 'card' ? booking.price : 0),
             date: booking.date,
             time: booking.time,
             status: booking.status,

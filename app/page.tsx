@@ -18,28 +18,39 @@ export default function Home() {
         {/* Background Watermark - Photographic Cinematic Style */}
         <div className="absolute inset-0">
           <img
-            src="/hero-watermark.jpg"
-            alt="Watermark"
-            className="w-full h-full object-cover grayscale opacity-60 mix-blend-multiply"
+            src="/branding/marble-bg.png"
+            alt="Marble Background"
+            className="w-full h-full object-cover"
           />
-          {/* Multi-layered cinematic gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#F1EFEC]/70 via-transparent to-[#F1EFEC]/70"></div>
-          <div className="absolute inset-0 bg-[#F1EFEC]/20 mix-blend-overlay"></div>
+          {/* Subtle overlay for text readability if needed */}
+          <div className="absolute inset-0 bg-white/10 mix-blend-overlay"></div>
         </div>
 
         <div className="absolute top-8 right-8 z-20 md:fixed md:top-8 md:right-auto md:left-8">
           <LanguageSwitcher />
         </div>
 
-        <div className="relative z-10 text-center space-y-6 max-w-md mt-0 md:-mt-32">
-          <div className="w-16 h-[1px] bg-stone-500/80 mx-auto mb-10"></div>
-          <h1 className="text-5xl md:text-7xl font-serif text-stone-800 leading-[0.9] tracking-tighter drop-shadow-md">
-            La Rosée<br /><span className="text-2xl md:text-3xl text-stone-600/80 drop-shadow-sm mt-4 block font-serif uppercase tracking-[0.2em]">Beauté</span>
+        <div className="relative z-10 text-center space-y-2 max-w-lg mt-0 md:-mt-32 animate-in fade-in duration-1000 slide-in-from-bottom-4">
+
+          {/* Main Logo Text - CSS Gold Gradient */}
+          <h1 className="font-serif text-5xl md:text-7xl font-bold tracking-widest leading-tight">
+            <span className="bg-gradient-to-r from-[#BF953F] via-[#D4AF37] to-[#8A6E2F] bg-clip-text text-transparent drop-shadow-sm filter">
+              BEAUTY ROOM
+            </span>
           </h1>
-          <p className="text-stone-800 font-bold text-[10px] tracking-[0.4em] uppercase pt-4">
+
+          <div className="flex items-center justify-center gap-4 py-2">
+            <div className="h-[1px] w-12 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent"></div>
+            <p className="text-xl md:text-2xl font-serif tracking-[0.2em] text-[#5e5e5e] uppercase">
+              BY SHAY
+            </p>
+            <div className="h-[1px] w-12 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent"></div>
+          </div>
+
+          <p className="text-stone-500 font-bold text-[10px] tracking-[0.4em] uppercase pt-8">
             {t('common.estetica_bienestar')}
           </p>
-          <div className="pt-12 text-[9px] font-bold tracking-[0.6em] text-stone-700 uppercase">
+          <div className="pt-4 text-[9px] font-bold tracking-[0.6em] text-stone-400 uppercase">
             {t('common.cordoba')} • {t('common.argentina')}
           </div>
         </div>
@@ -68,7 +79,7 @@ export default function Home() {
           <FAQSection />
 
           <footer className="text-center text-xs text-stone-300 py-12 uppercase tracking-widest border-t border-stone-200">
-            <div>La Rosée Beauté © {new Date().getFullYear()}</div>
+            <div>Beauty Room BY SHAY © {new Date().getFullYear()}</div>
             <div className="mt-4 lowercase tracking-normal flex items-center justify-center gap-4">
               <a href="/staff" className="hover:text-gold-400 decoration-gold-200/30 underline-offset-4 underline">{t('common.staff_access')}</a>
               <span className="text-stone-200">•</span>

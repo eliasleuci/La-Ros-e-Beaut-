@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useConfig, Booking } from '@/context/ConfigContext';
 import { Card } from '@/components/ui/Card';
 import { formatDate } from '@/utils/date-helpers';
+import { EditBookingModal } from './EditBookingModal';
 
 interface ClientData {
     name: string;
@@ -20,6 +21,16 @@ export function ClientSearch() {
     const { bookings, team } = useConfig();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+    const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+
+    // Helper to open edit modal with phone normalization
+    const handleEditClick = (booking: Booking) => {
+        let phone = booking.clientPhone || '';
+        if (phone && !phone.includes('+')) {
+            phone = `+34 ${phone}`;
+        }
+        setEditingBooking({ ...booking, clientPhone: phone });
+    };
 
     // Normalize phone for comparison (remove spaces, dashes, and country code prefix)
     const normalizePhone = (phone: string): string => {
@@ -228,7 +239,16 @@ export function ClientSearch() {
                                         </div>
                                         <div className="flex justify-between items-center text-xs text-stone-400">
                                             <span>📅 {formatDate(booking.date)} • {booking.time}</span>
-                                            <span className="font-bold">€{booking.price?.toLocaleString()}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold">€{booking.price?.toLocaleString()}</span>
+                                                <button
+                                                    onClick={() => handleEditClick(booking)}
+                                                    className="p-1 hover:text-gold-500 text-stone-300 transition-colors"
+                                                    title="Editar Reserva"
+                                                >
+                                                    ✏️
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -259,7 +279,16 @@ export function ClientSearch() {
                                         </div>
                                         <div className="flex justify-between items-center text-xs text-stone-400">
                                             <span>📅 {formatDate(booking.date)} • {booking.time}</span>
-                                            <span className="font-bold">€{booking.price?.toLocaleString()}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold">€{booking.price?.toLocaleString()}</span>
+                                                <button
+                                                    onClick={() => handleEditClick(booking)}
+                                                    className="p-1 hover:text-gold-500 text-stone-300 transition-colors"
+                                                    title="Editar Reserva"
+                                                >
+                                                    ✏️
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -274,6 +303,13 @@ export function ClientSearch() {
                         </div>
                     )}
                 </div>
+            )}
+
+            {editingBooking && (
+                <EditBookingModal
+                    booking={editingBooking}
+                    onClose={() => setEditingBooking(null)}
+                />
             )}
         </Card>
     );
