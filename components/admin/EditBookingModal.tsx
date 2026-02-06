@@ -11,15 +11,20 @@ interface EditBookingModalProps {
 export function EditBookingModal({ booking: initialBooking, onClose }: EditBookingModalProps) {
     const { team, updateBooking } = useConfig();
     const [editingBooking, setEditingBooking] = useState<Booking>(initialBooking);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Update local state if prop changes (though usually this component is mounted conditionally)
     useEffect(() => {
         setEditingBooking(initialBooking);
     }, [initialBooking]);
 
-    const handleSave = () => {
-        updateBooking(editingBooking);
-        onClose();
+    const handleSave = async () => {
+        setIsSaving(true);
+        const success = await updateBooking(editingBooking);
+        if (success) {
+            onClose();
+        }
+        setIsSaving(false);
     };
 
     return (
@@ -153,11 +158,14 @@ export function EditBookingModal({ booking: initialBooking, onClose }: EditBooki
                             <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Hora</label>
                             <select
                                 value={editingBooking.time}
-                                onChange={e => setEditingBooking({
-                                    ...editingBooking,
-                                    time: e.target.value,
-                                    date: editingBooking.date.split('T')[0] + 'T' + e.target.value + ':00+01:00'
-                                })}
+                                onChange={e => {
+                                    const paddedTime = e.target.value.padStart(5, '0');
+                                    setEditingBooking({
+                                        ...editingBooking,
+                                        time: paddedTime,
+                                        date: editingBooking.date.split('T')[0] + 'T' + paddedTime + ':00+01:00'
+                                    });
+                                }}
                                 className="w-full px-4 py-3 rounded-xl border border-stone-200"
                             >
                                 {getSlotsForDate(new Date(editingBooking.date), 15).map(t => (
@@ -256,8 +264,9 @@ export function EditBookingModal({ booking: initialBooking, onClose }: EditBooki
                         variant="gold"
                         fullWidth
                         onClick={handleSave}
+                        disabled={isSaving}
                     >
-                        GUARDAR CAMBIOS
+                        {isSaving ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
                     </Button>
                 </div>
             </div>

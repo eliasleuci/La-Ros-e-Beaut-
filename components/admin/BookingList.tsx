@@ -19,6 +19,7 @@ export function BookingList() {
 
     // Manual Booking State
     const [isCreating, setIsCreating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [newBooking, setNewBooking] = useState({
         clientName: '',
         countryCode: '+34',
@@ -35,13 +36,28 @@ export function BookingList() {
     const [isOverbooking, setIsOverbooking] = useState(false);
     const [availabilityWarning, setAvailabilityWarning] = useState<string | null>(null);
 
-    // Check availability whenever relevant fields change
-    // Note: For manual bookings with custom service names, we skip duration-based availability checks
+    // Check availability and autocomplete client data
     React.useEffect(() => {
         // Skip availability checks for manual service entries (no serviceId)
         setAvailabilityWarning(null);
         setIsOverbooking(false);
-    }, [newBooking.date, newBooking.time, newBooking.professionalId, isCreating]);
+
+        // Client Autocomplete Logic
+        if (newBooking.clientPhone.length >= 8) {
+            const normalizedNewPhone = newBooking.clientPhone.replace(/[\s\-\+]/g, '');
+            // Find the most recent booking with this phone number
+            const existingBooking = [...bookings]
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .find(b => b.clientPhone && b.clientPhone.replace(/[\s\-\+]/g, '').includes(normalizedNewPhone));
+
+            if (existingBooking && !newBooking.clientName) {
+                setNewBooking(prev => ({
+                    ...prev,
+                    clientName: existingBooking.clientName
+                }));
+            }
+        }
+    }, [newBooking.date, newBooking.time, newBooking.professionalId, newBooking.clientPhone, isCreating, bookings]);
 
     const getProfessionalName = (id?: string) => {
         if (!id) return 'Sin Asignar';
@@ -56,6 +72,13 @@ export function BookingList() {
         absent: 'bg-red-50 text-red-600 border-red-100',
     };
 
+    const statusLabels = {
+        pending: 'PENDIENTE',
+        confirmed: 'CONFIRMADO',
+        attended: 'ATENDIDO',
+        absent: 'AUSENTE',
+    };
+
     const filteredBookings = bookings.filter(b => {
         // Filter by date (ensure we compare YYYY-MM-DD parts)
         const bookingDate = b.date.split('T')[0];
@@ -64,7 +87,11 @@ export function BookingList() {
         // Filter by status
         if (filterStatus === 'all') return true;
         return b.status === filterStatus;
-    }).sort((a, b) => a.time.localeCompare(b.time));
+    }).sort((a, b) => {
+        const timeA = a.time.padStart(5, '0');
+        const timeB = b.time.padStart(5, '0');
+        return timeA.localeCompare(timeB);
+    });
 
     const getWhatsAppLink = (booking: Booking) => {
         if (!booking.clientPhone) return '';
@@ -363,12 +390,15 @@ export function BookingList() {
 
                                     <div className="pt-2">
                                         <Button
-                                            fullWidth
-                                            onClick={() => {
+                                            disabled={isSaving}
+                                            onClick={async () => {
                                                 if (!newBooking.clientName || !newBooking.serviceName) {
                                                     alert('Por favor complete Nombre y Servicio');
                                                     return;
                                                 }
+
+                                                setIsSaving(true);
+                                                const paddedTime = newBooking.time.padStart(5, '0');
                                                 const bookingToAdd: any = {
                                                     id: crypto.randomUUID(),
                                                     clientName: newBooking.clientName,
@@ -376,28 +406,33 @@ export function BookingList() {
                                                     serviceName: newBooking.serviceName,
                                                     price: newBooking.price,
                                                     paymentMethod: newBooking.paymentMethod,
-                                                    date: `${newBooking.date}T${newBooking.time}:00+01:00`,
-                                                    time: newBooking.time,
+                                                    date: `${newBooking.date}T${paddedTime}:00+01:00`,
+                                                    time: paddedTime,
                                                     createdAt: new Date().toISOString(),
                                                     status: 'confirmed',
                                                     professionalId: newBooking.professionalId || undefined
                                                 };
-                                                addBooking(bookingToAdd);
-                                                setIsCreating(false);
-                                                setNewBooking({
-                                                    clientName: '',
-                                                    countryCode: '+34',
-                                                    clientPhone: '',
-                                                    serviceName: '',
-                                                    price: '' as any,
-                                                    professionalId: '',
-                                                    date: new Date().toISOString().split('T')[0],
-                                                    time: '10:00',
-                                                    paymentMethod: 'cash'
-                                                });
+
+                                                const success = await addBooking(bookingToAdd);
+
+                                                if (success) {
+                                                    setIsCreating(false);
+                                                    setNewBooking({
+                                                        clientName: '',
+                                                        countryCode: '+34',
+                                                        clientPhone: '',
+                                                        serviceName: '',
+                                                        price: '' as any,
+                                                        professionalId: '',
+                                                        date: new Date().toISOString().split('T')[0],
+                                                        time: '10:00',
+                                                        paymentMethod: 'cash'
+                                                    });
+                                                }
+                                                setIsSaving(false);
                                             }}
                                         >
-                                            GUARDAR TURNO
+                                            {isSaving ? 'GUARDANDO...' : 'GUARDAR TURNO'}
                                         </Button>
                                     </div>
                                 </div>
@@ -578,7 +613,7 @@ export function BookingList() {
                                         <div className="flex items-center gap-3 mb-1">
                                             <h3 className="font-bold text-stone-700 text-lg">{booking.clientName}</h3>
                                             <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${statusColors[booking.status as keyof typeof statusColors || 'pending']}`}>
-                                                {(booking.status || 'pending').toUpperCase()}
+                                                {statusLabels[booking.status as keyof typeof statusLabels || 'pending']}
                                             </span>
                                         </div>
                                         {booking.clientPhone && (
@@ -608,7 +643,7 @@ export function BookingList() {
                                             className="text-xs font-bold border border-stone-200 rounded-lg px-3 py-2 outline-none focus:border-gold-300 cursor-pointer"
                                         >
                                             <option value="pending">PENDIENTE</option>
-                                            <option value="confirmed">CONFIRMAR</option>
+                                            <option value="confirmed">CONFIRMADO</option>
                                             <option value="attended">ATENDIDO</option>
                                             <option value="absent">AUSENTE</option>
                                         </select>

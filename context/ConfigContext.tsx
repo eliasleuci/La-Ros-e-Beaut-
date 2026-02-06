@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Service } from '@/components/booking/ServiceSelection';
 import { supabase } from '@/lib/supabase';
+import { Toast } from '@/components/ui/Toast';
 
 export interface FAQ {
     id: string;
@@ -119,8 +120,8 @@ interface ConfigContextType {
     updateFaqs: (faqs: FAQ[]) => void;
     updateGallery: (images: string[]) => void;
     updateTeam: (team: TeamMember[]) => void;
-    addBooking: (booking: Booking) => void;
-    updateBooking: (booking: Booking) => void;
+    addBooking: (booking: Booking) => Promise<boolean>;
+    updateBooking: (booking: Booking) => Promise<boolean>;
     updateBookingStatus: (id: string, status: Booking['status']) => void;
     deleteBooking: (id: string) => void;
     addReview: (review: Review) => void;
@@ -136,6 +137,9 @@ interface ConfigContextType {
     deleteExpense: (id: string) => void;
     importHolidays: () => void;
     resetToDefaults: () => void;
+    notification: { message: string, type: 'success' | 'error' } | null;
+    showNotification: (message: string, type: 'success' | 'error') => void;
+    clearNotification: () => void;
     isLoaded: boolean;
 }
 
@@ -257,13 +261,15 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     const [clinicalRecords, setClinicalRecords] = useState<ClinicalRecord[]>([]);
     const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [isLoaded, setIsLoaded] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        const saved = localStorage.getItem('estetica_services');
-        return !!saved;
-    });
+    const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
-    // Removed useEffect for initial localStorage load as it's now in useState
+    const showNotification = (message: string, type: 'success' | 'error') => {
+        setNotification({ message, type });
+    };
+
+    const clearNotification = () => setNotification(null);
+
+    const [isLoaded, setIsLoaded] = useState(false);
 
     // Load from Supabase on mount with migration and self-healing logic
     useEffect(() => {
@@ -567,57 +573,72 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         await supabase.from('team').insert(newTeam);
     };
 
-    const addBooking = async (booking: Booking) => {
-        setBookings(prev => [booking, ...prev]);
+    const addBooking = async (booking: Booking): Promise<boolean> => {
+        try {
+            const { error } = await supabase.from('bookings').insert({
+                id: booking.id,
+                client_name: booking.clientName,
+                client_phone: booking.clientPhone,
+                service_id: booking.serviceId,
+                service_name: booking.serviceName,
+                price: booking.price,
+                payment_method: booking.paymentMethod,
+                cash_amount: booking.cashAmount || (booking.paymentMethod === 'cash' ? booking.price : 0),
+                card_amount: booking.cardAmount || (booking.paymentMethod === 'card' ? booking.price : 0),
+                date: booking.date,
+                time: booking.time,
+                status: booking.status,
+                professional_id: booking.professionalId || null
+            });
 
-        const { data, error } = await supabase.from('bookings').insert({
-            id: booking.id,
-            client_name: booking.clientName,
-            client_phone: booking.clientPhone,
-            service_id: booking.serviceId,
-            service_name: booking.serviceName,
-            price: booking.price,
-            payment_method: booking.paymentMethod,
-            cash_amount: booking.cashAmount || (booking.paymentMethod === 'cash' ? booking.price : 0),
-            card_amount: booking.cardAmount || (booking.paymentMethod === 'card' ? booking.price : 0),
-            date: booking.date,
-            time: booking.time,
-            status: booking.status,
-            professional_id: booking.professionalId || null
-        });
-
-        if (error) {
-            console.error('❌ Error al guardar reserva en Supabase:', error);
-            console.log('Datos que se intentaron guardar:', booking);
-        } else {
-            console.log('✅ Reserva guardada exitosamente en Supabase:', data);
+            if (error) {
+                console.error('❌ Error al guardar reserva en Supabase:', error);
+                showNotification('Error al conectar con la base de datos: ' + error.message, 'error');
+                return false;
+            } else {
+                setBookings(prev => [booking, ...prev]);
+                showNotification('¡Turno guardado con éxito!', 'success');
+                return true;
+            }
+        } catch (err) {
+            console.error('❌ Error fatal al guardar:', err);
+            showNotification('Error inesperado al guardar el turno.', 'error');
+            return false;
         }
     };
 
 
 
-    const updateBooking = async (booking: Booking) => {
-        setBookings(prev => prev.map(b => b.id === booking.id ? booking : b));
+    const updateBooking = async (booking: Booking): Promise<boolean> => {
+        try {
+            const { error } = await supabase.from('bookings').update({
+                client_name: booking.clientName,
+                client_phone: booking.clientPhone,
+                service_id: booking.serviceId,
+                service_name: booking.serviceName,
+                price: booking.price,
+                payment_method: booking.paymentMethod,
+                cash_amount: booking.cashAmount || (booking.paymentMethod === 'cash' ? booking.price : 0),
+                card_amount: booking.cardAmount || (booking.paymentMethod === 'card' ? booking.price : 0),
+                date: booking.date,
+                time: booking.time,
+                status: booking.status,
+                professional_id: booking.professionalId || null
+            }).eq('id', booking.id);
 
-        const { error } = await supabase.from('bookings').update({
-            client_name: booking.clientName,
-            client_phone: booking.clientPhone,
-            service_id: booking.serviceId,
-            service_name: booking.serviceName,
-            price: booking.price,
-            payment_method: booking.paymentMethod,
-            cash_amount: booking.cashAmount || (booking.paymentMethod === 'cash' ? booking.price : 0),
-            card_amount: booking.cardAmount || (booking.paymentMethod === 'card' ? booking.price : 0),
-            date: booking.date,
-            time: booking.time,
-            status: booking.status,
-            professional_id: booking.professionalId || null
-        }).eq('id', booking.id);
-
-        if (error) {
-            console.error('❌ Error al actualizar reserva:', error);
-        } else {
-            console.log('✅ Reserva actualizada exitosamente');
+            if (error) {
+                console.error('❌ Error al actualizar reserva:', error);
+                showNotification('Error al actualizar el turno: ' + error.message, 'error');
+                return false;
+            } else {
+                setBookings(prev => prev.map(b => b.id === booking.id ? booking : b));
+                showNotification('¡Turno actualizado correctamente!', 'success');
+                return true;
+            }
+        } catch (err) {
+            console.error('❌ Error fatal al actualizar:', err);
+            showNotification('Error inesperado al actualizar.', 'error');
+            return false;
         }
     };
 
@@ -789,7 +810,6 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             updateGallery,
             updateTeam,
             addBooking,
-
             updateBooking,
             updateBookingStatus,
             deleteBooking,
@@ -806,9 +826,19 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             deleteExpense,
             importHolidays,
             resetToDefaults,
+            notification,
+            showNotification,
+            clearNotification,
             isLoaded
         }}>
             {children}
+            {notification && (
+                <Toast
+                    message={notification.message}
+                    type={notification.type}
+                    onClose={clearNotification}
+                />
+            )}
         </ConfigContext.Provider>
     );
 }
