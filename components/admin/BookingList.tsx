@@ -388,7 +388,7 @@ export function BookingList() {
                                         </div>
                                     </div>
 
-                                    <div className="pt-2">
+                                    <div className="pt-2 flex flex-col gap-2">
                                         <Button
                                             disabled={isSaving}
                                             onClick={async () => {
@@ -433,6 +433,42 @@ export function BookingList() {
                                             }}
                                         >
                                             {isSaving ? 'GUARDANDO...' : 'GUARDAR TURNO'}
+                                        </Button>
+
+                                        <Button
+                                            disabled={isSaving}
+                                            onClick={async () => {
+                                                if (!newBooking.clientName || !newBooking.serviceName) {
+                                                    alert('Por favor complete Nombre y Servicio');
+                                                    return;
+                                                }
+
+                                                setIsSaving(true);
+                                                const paddedTime = newBooking.time.padStart(5, '0');
+                                                const bookingToAdd: any = {
+                                                    id: crypto.randomUUID(),
+                                                    clientName: newBooking.clientName,
+                                                    clientPhone: newBooking.clientPhone ? `${newBooking.countryCode} ${newBooking.clientPhone}`.trim() : '',
+                                                    serviceName: newBooking.serviceName,
+                                                    price: newBooking.price,
+                                                    paymentMethod: newBooking.paymentMethod,
+                                                    date: `${newBooking.date}T${paddedTime}:00+01:00`,
+                                                    time: paddedTime,
+                                                    createdAt: new Date().toISOString(),
+                                                    status: 'confirmed',
+                                                    professionalId: newBooking.professionalId || undefined
+                                                };
+
+                                                const success = await addBooking(bookingToAdd);
+
+                                                if (success) {
+                                                    // For "Add Another", we keep the form open and the data
+                                                    alert('Turno guardado correctamente. Puedes editar los datos para el siguiente turno.');
+                                                }
+                                                setIsSaving(false);
+                                            }}
+                                        >
+                                            {isSaving ? 'GUARDANDO...' : 'GUARDAR Y AGENDAR OTRO'}
                                         </Button>
                                     </div>
                                 </div>
