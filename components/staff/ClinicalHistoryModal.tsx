@@ -125,7 +125,7 @@ export function ClinicalHistoryModal({ booking, onClose, professionalName }: Cli
 
                 {/* Footer */}
                 <div className="p-4 bg-stone-50 border-t border-stone-100 text-center">
-                    <p className="text-[10px] text-stone-300 uppercase tracking-widest font-bold">La Rosée Beauté</p>
+                    <p className="text-[10px] text-stone-300 uppercase tracking-widest font-bold">Beauty Room by Shay</p>
                 </div>
             </Card>
         </div>

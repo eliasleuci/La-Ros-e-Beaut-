@@ -108,7 +108,12 @@ export function BookingList() {
         const date = `${dateParts[2]}/${dateParts[1]}`;
         const time = booking.time;
 
-        const message = `Hola ${booking.clientName}! 👋 Te recordamos tu turno para *${booking.serviceName}* el día *${date}* a las *${time} hs*. Te esperamos en *La Rosée Beauté*! 🌸`;
+        const message = `Hola ${booking.clientName}! 👋 Te recordamos tu turno para *${booking.serviceName}* el día *${date}* a las *${time} hs*.
+
+En cuanto al pago, por favor ten en cuenta:
+💶 Puedes pagar en efectivo o por transferencia bancaria (te daré el IBAN el día de la cita).
+
+Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
 
         return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     };
@@ -129,7 +134,7 @@ export function BookingList() {
                 <hr style="border: none; border-top: 1px solid #e7e5e4; margin-bottom: 30px;">
                 ${summaryHtml}
                 <div style="margin-top: 50px; border-top: 1px solid #e7e5e4; padding-top: 20px; font-size: 11px; color: #a8a29e; text-align: center; letter-spacing: 1px; text-transform: uppercase;">
-                    La Rosée Beauté - Sistema de Gestión
+                    Beauty Room by Shay - Sistema de Gestión
                 </div>
             </div>
             <style>

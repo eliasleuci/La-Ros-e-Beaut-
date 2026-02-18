@@ -21,7 +21,7 @@ export function QRCodeSection({ isOpen, onClose }: QRCodeSectionProps) {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'la-rosee-qr.png';
+            link.download = 'beauty-room-qr.png';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -35,8 +35,8 @@ export function QRCodeSection({ isOpen, onClose }: QRCodeSectionProps) {
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: 'La Rosée Beauté - Reservas',
-                    text: 'Reserva tu turno en La Rosée Beauté',
+                    title: 'Beauty Room by Shay - Reservas',
+                    text: 'Reserva tu turno en Beauty Room by Shay',
                     url: currentUrl,
                 });
             } catch (error) {
@@ -93,7 +93,7 @@ export function QRCodeSection({ isOpen, onClose }: QRCodeSectionProps) {
 
                 <div className="bg-stone-50 p-4 text-center border-t border-stone-100">
                     <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold">
-                        La Rosée Beauté
+                        Beauty Room by Shay
                     </p>
                 </div>
             </div>
