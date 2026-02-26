@@ -6,9 +6,10 @@ import { getSlotsForDate } from '@/utils/date-helpers';
 interface EditBookingModalProps {
     booking: Booking;
     onClose: () => void;
+    onSaveAndAddAnother?: (booking: Booking) => void;
 }
 
-export function EditBookingModal({ booking: initialBooking, onClose }: EditBookingModalProps) {
+export function EditBookingModal({ booking: initialBooking, onClose, onSaveAndAddAnother }: EditBookingModalProps) {
     const { team, updateBooking } = useConfig();
     const [editingBooking, setEditingBooking] = useState<Booking>(initialBooking);
     const [isSaving, setIsSaving] = useState(false);
@@ -23,6 +24,15 @@ export function EditBookingModal({ booking: initialBooking, onClose }: EditBooki
         const success = await updateBooking(editingBooking);
         if (success) {
             onClose();
+        }
+        setIsSaving(false);
+    };
+
+    const handleSaveAndAddAnother = async () => {
+        setIsSaving(true);
+        const success = await updateBooking(editingBooking);
+        if (success && onSaveAndAddAnother) {
+            onSaveAndAddAnother(editingBooking);
         }
         setIsSaving(false);
     };
@@ -252,22 +262,35 @@ export function EditBookingModal({ booking: initialBooking, onClose }: EditBooki
                     </div>
                 </div>
 
-                <div className="mt-8 flex gap-4">
-                    <Button
-                        variant="outline"
-                        fullWidth
-                        onClick={onClose}
-                    >
-                        CANCELAR
-                    </Button>
-                    <Button
-                        variant="gold"
-                        fullWidth
-                        onClick={handleSave}
-                        disabled={isSaving}
-                    >
-                        {isSaving ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
-                    </Button>
+                <div className="mt-8 flex flex-col gap-4">
+                    <div className="flex gap-4">
+                        <Button
+                            variant="outline"
+                            fullWidth
+                            onClick={onClose}
+                        >
+                            CANCELAR
+                        </Button>
+                        <Button
+                            variant="gold"
+                            fullWidth
+                            onClick={handleSave}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
+                        </Button>
+                    </div>
+                    {onSaveAndAddAnother && (
+                        <Button
+                            variant="primary"
+                            fullWidth
+                            onClick={handleSaveAndAddAnother}
+                            disabled={isSaving}
+                            className="bg-black text-white hover:bg-stone-800"
+                        >
+                            {isSaving ? 'GUARDANDO...' : 'GUARDAR Y AGENDAR OTRO'}
+                        </Button>
+                    )}
                 </div>
             </div>
         </div>

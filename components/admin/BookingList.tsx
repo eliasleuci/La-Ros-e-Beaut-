@@ -755,6 +755,35 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                 <EditBookingModal
                     booking={editingBooking}
                     onClose={() => setEditingBooking(null)}
+                    onSaveAndAddAnother={(savedBooking) => {
+                        setEditingBooking(null);
+                        setIsCreating(true);
+
+                        // Parse phone number to separate country code and number
+                        let countryCode = '+34';
+                        let phone = savedBooking.clientPhone || '';
+
+                        if (phone.includes('+')) {
+                            const parts = phone.split(' ');
+                            countryCode = parts[0];
+                            phone = parts.slice(1).join(' ');
+                        }
+
+                        setNewBooking({
+                            clientName: savedBooking.clientName,
+                            countryCode: countryCode,
+                            clientPhone: phone,
+                            serviceName: '', // Keep empty for the new booking
+                            price: '' as any,
+                            professionalId: savedBooking.professionalId || '',
+                            date: savedBooking.date.split('T')[0], // Keep the same date as the edited booking
+                            time: '10:00',
+                            paymentMethod: 'cash'
+                        });
+
+                        // Scroll to top to see the form
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                 />
             )}
 
