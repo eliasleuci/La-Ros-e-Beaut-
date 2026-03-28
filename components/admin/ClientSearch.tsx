@@ -5,6 +5,7 @@ import { useConfig, Booking } from '@/context/ConfigContext';
 import { Card } from '@/components/ui/Card';
 import { formatDate } from '@/utils/date-helpers';
 import { EditBookingModal } from './EditBookingModal';
+import { ClinicalHistoryModal } from '../staff/ClinicalHistoryModal';
 
 interface ClientData {
     name: string;
@@ -22,6 +23,7 @@ export function ClientSearch() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+    const [viewingHistory, setViewingHistory] = useState<Booking | null>(null);
 
     // Helper to open edit modal with phone normalization
     const handleEditClick = (booking: Booking) => {
@@ -73,18 +75,27 @@ export function ClientSearch() {
                 const bookingDate = new Date(booking.date);
                 const now = new Date();
 
-                // Categorize booking
-                if (booking.status === 'attended') {
-                    client.pastBookings.push(booking);
-                    client.totalVisits++;
-                    client.totalSpent += booking.price || 0;
+                const isPast = bookingDate < now;
+                const isAbsent = booking.status === 'absent';
+                const isAttended = booking.status === 'attended';
 
-                    // Update last visit
-                    if (!client.lastVisit || new Date(booking.date) > new Date(client.lastVisit)) {
-                        client.lastVisit = booking.date;
-                        client.lastService = booking.serviceName;
+                // Categorize booking
+                // Past bookings, Attended, or Absent go to pastBookings
+                if (isAttended || isAbsent || isPast) {
+                    client.pastBookings.push(booking);
+                    
+                    if (isAttended) {
+                        client.totalVisits++;
+                        client.totalSpent += booking.price || 0;
+
+                        // Update last visit info
+                        if (!client.lastVisit || new Date(booking.date) > new Date(client.lastVisit)) {
+                            client.lastVisit = booking.date;
+                            client.lastService = booking.serviceName;
+                        }
                     }
-                } else if (bookingDate >= now && (booking.status === 'pending' || booking.status === 'confirmed')) {
+                } else {
+                    // Only future pending/confirmed go to futureBookings
                     client.futureBookings.push(booking);
                 }
             }
@@ -242,6 +253,13 @@ export function ClientSearch() {
                                             <div className="flex items-center gap-2">
                                                 <span className="font-bold">€{booking.price?.toLocaleString()}</span>
                                                 <button
+                                                    onClick={() => setViewingHistory(booking)}
+                                                    className="p-1 hover:text-gold-600 text-stone-300 transition-colors"
+                                                    title="Ver Ficha Clínica"
+                                                >
+                                                    📋
+                                                </button>
+                                                <button
                                                     onClick={() => handleEditClick(booking)}
                                                     className="p-1 hover:text-gold-500 text-stone-300 transition-colors"
                                                     title="Editar Reserva"
@@ -273,14 +291,21 @@ export function ClientSearch() {
                                                 <h5 className="font-bold text-stone-700">{booking.serviceName}</h5>
                                                 <p className="text-sm text-stone-500">{getProfessionalName(booking.professionalId)}</p>
                                             </div>
-                                            <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${statusColors.attended}`}>
-                                                ATENDIDO
+                                            <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${statusColors[booking.status as keyof typeof statusColors] || statusColors.attended}`}>
+                                                {(booking.status || 'attended').toUpperCase()}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center text-xs text-stone-400">
                                             <span>📅 {formatDate(booking.date)} • {booking.time}</span>
                                             <div className="flex items-center gap-2">
                                                 <span className="font-bold">€{booking.price?.toLocaleString()}</span>
+                                                <button
+                                                    onClick={() => setViewingHistory(booking)}
+                                                    className="p-1 hover:text-gold-600 text-stone-300 transition-colors"
+                                                    title="Ver Ficha Clínica"
+                                                >
+                                                    📋
+                                                </button>
                                                 <button
                                                     onClick={() => handleEditClick(booking)}
                                                     className="p-1 hover:text-gold-500 text-stone-300 transition-colors"
@@ -309,6 +334,14 @@ export function ClientSearch() {
                 <EditBookingModal
                     booking={editingBooking}
                     onClose={() => setEditingBooking(null)}
+                />
+            )}
+
+            {viewingHistory && (
+                <ClinicalHistoryModal
+                    booking={viewingHistory}
+                    onClose={() => setViewingHistory(null)}
+                    professionalName={getProfessionalName(viewingHistory.professionalId)}
                 />
             )}
         </Card>

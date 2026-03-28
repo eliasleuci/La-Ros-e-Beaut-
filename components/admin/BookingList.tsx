@@ -16,6 +16,7 @@ export function BookingList() {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [viewingHistory, setViewingHistory] = useState<Booking | null>(null);
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+    const [showHistorical, setShowHistorical] = useState(false);
 
     // Manual Booking State
     const [isCreating, setIsCreating] = useState(false);
@@ -82,7 +83,13 @@ export function BookingList() {
     const filteredBookings = bookings.filter(b => {
         // Filter by date (ensure we compare YYYY-MM-DD parts)
         const bookingDate = b.date.split('T')[0];
-        if (bookingDate !== selectedDate) return false;
+        const isSelectedDate = bookingDate === selectedDate;
+
+        // If showHistorical is ON and a specific status is filtered (not 'all'), we show cross-dates
+        // BUT if it's 'all', we ALWAYS stick to selected date to avoid chaos
+        if (!showHistorical || filterStatus === 'all') {
+            if (!isSelectedDate) return false;
+        }
 
         // Filter by status
         if (filterStatus === 'all') return true;
@@ -219,17 +226,43 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                     <h2 className="text-2xl font-serif font-bold text-stone-800">
                         Agenda de Turnos
                     </h2>
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="bg-stone-50 border border-stone-200 text-stone-600 text-sm rounded-xl px-4 py-2 outline-none focus:border-gold-300"
-                    >
-                        <option value="all">Todos</option>
-                        <option value="pending">Pendientes</option>
-                        <option value="confirmed">Confirmados</option>
-                        <option value="attended">Atendidos</option>
-                        <option value="absent">Ausentes</option>
-                    </select>
+
+                    <div className="flex flex-wrap gap-2 items-center">
+                        <label className="text-xs font-bold text-stone-400 uppercase hidden md:inline mr-2">Filtrar por:</label>
+                        {[
+                            { id: 'all', label: 'Todos' },
+                            { id: 'pending', label: 'Pendientes' },
+                            { id: 'confirmed', label: 'Confirmados' },
+                            { id: 'attended', label: 'Atendidos' },
+                            { id: 'absent', label: 'Ausentes' }
+                        ].map(status => (
+                            <button
+                                key={status.id}
+                                onClick={() => {
+                                    setFilterStatus(status.id);
+                                    if (status.id === 'all') setShowHistorical(false);
+                                }}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${filterStatus === status.id
+                                    ? 'bg-stone-800 text-white border-stone-800 shadow-md'
+                                    : 'bg-white text-stone-500 border-stone-200 hover:border-gold-300'
+                                    }`}
+                            >
+                                {status.label}
+                            </button>
+                        ))}
+
+                        {filterStatus !== 'all' && (
+                            <button
+                                onClick={() => setShowHistorical(!showHistorical)}
+                                className={`ml-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 ${showHistorical
+                                    ? 'bg-amber-100 text-amber-700 border-amber-200 shadow-sm'
+                                    : 'bg-stone-50 text-stone-400 border-stone-100 hover:bg-stone-100 font-normal'
+                                    }`}
+                            >
+                                {showHistorical ? '📅 MOSTRANDO HISTÓRICO' : '🔍 VER HISTÓRICO'}
+                            </button>
+                        )}
+                    </div>
 
                     <div className="flex items-center gap-2">
                         <label className="text-xs font-bold text-stone-400 uppercase hidden md:inline">Fecha:</label>
