@@ -10,7 +10,7 @@ interface EditBookingModalProps {
 }
 
 export function EditBookingModal({ booking: initialBooking, onClose, onSaveAndAddAnother }: EditBookingModalProps) {
-    const { team, updateBooking } = useConfig();
+    const { team, updateBooking, services } = useConfig();
     const [editingBooking, setEditingBooking] = useState<Booking>(initialBooking);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -95,14 +95,42 @@ export function EditBookingModal({ booking: initialBooking, onClose, onSaveAndAd
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Servicio</label>
-                            <input
-                                type="text"
-                                value={editingBooking.serviceName}
-                                onChange={e => setEditingBooking({ ...editingBooking, serviceName: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl border border-stone-200"
-                                placeholder="Ej: Lifting de pestañas + depilación"
-                            />
-                            <p className="text-xs text-stone-400 mt-1">Puedes editar libremente el nombre del servicio</p>
+                            <select
+                                value={editingBooking.serviceId || 'custom'}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    if (val === 'custom') {
+                                        setEditingBooking({ ...editingBooking, serviceId: '', serviceName: '' });
+                                    } else {
+                                        const s = services.find(serv => serv.id === val);
+                                        if (s) {
+                                            setEditingBooking({ 
+                                                ...editingBooking, 
+                                                serviceId: s.id, 
+                                                serviceName: s.name, 
+                                                price: editingBooking.price || s.promo_price || s.price 
+                                            });
+                                        }
+                                    }
+                                }}
+                                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white mb-2"
+                            >
+                                <option value="custom">-- Servicio Personalizado / Otro --</option>
+                                {services.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name} (€{s.promo_price || s.price})</option>
+                                ))}
+                            </select>
+
+                            {(!editingBooking.serviceId || editingBooking.serviceId === '') && (
+                                <input
+                                    type="text"
+                                    value={editingBooking.serviceName}
+                                    onChange={e => setEditingBooking({ ...editingBooking, serviceName: e.target.value })}
+                                    className="w-full px-4 py-3 rounded-xl border border-stone-200 animate-in fade-in slide-in-from-top-1"
+                                    placeholder="Nombre del servicio personalizado"
+                                />
+                            )}
+                            <p className="text-xs text-stone-400 mt-1">Selecciona un servicio para vincular duración y precio oficial</p>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Precio (€)</label>
