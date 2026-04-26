@@ -25,6 +25,7 @@ export function BookingList() {
         clientName: '',
         countryCode: '+34',
         clientPhone: '',
+        serviceId: '', // Added serviceId for better linking
         serviceName: '',
         price: '' as any,
         professionalId: '',
@@ -39,9 +40,35 @@ export function BookingList() {
 
     // Check availability and autocomplete client data
     React.useEffect(() => {
-        // Skip availability checks for manual service entries (no serviceId)
-        setAvailabilityWarning(null);
-        setIsOverbooking(false);
+        if (isCreating && newBooking.time) {
+            const dateObj = new Date(newBooking.date + 'T12:00:00');
+            
+            // Try to find duration
+            const selectedService = services.find(s => s.id === (newBooking as any).serviceId) || 
+                                   services.find(s => s.name.toLowerCase() === newBooking.serviceName.toLowerCase());
+            const duration = selectedService ? parseDuration(selectedService.duration) : 30;
+
+            const isAvailable = checkAvailability(
+                dateObj,
+                newBooking.time,
+                duration,
+                bookings,
+                services,
+                team,
+                professionalBlocks
+            );
+
+            if (!isAvailable) {
+                setAvailabilityWarning('Este horario ya está ocupado. ¿Agendar como sobreturno?');
+                setIsOverbooking(true);
+            } else {
+                setAvailabilityWarning(null);
+                setIsOverbooking(false);
+            }
+        } else {
+            setAvailabilityWarning(null);
+            setIsOverbooking(false);
+        }
 
         // Client Autocomplete Logic
         if (newBooking.clientPhone.length >= 8) {
@@ -351,14 +378,42 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Servicio</label>
-                                        <input
-                                            type="text"
-                                            value={newBooking.serviceName}
-                                            onChange={e => setNewBooking({ ...newBooking, serviceName: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-stone-200"
-                                            placeholder="Ej: Lifting de pestañas + depilación"
-                                        />
-                                        <p className="text-xs text-stone-400 mt-1">Puedes ingresar cualquier servicio personalizado</p>
+                                        <select
+                                            value={(newBooking as any).serviceId || 'custom'}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                if (val === 'custom') {
+                                                    setNewBooking({ ...newBooking, serviceId: '', serviceName: '', price: '' });
+                                                } else {
+                                                    const s = services.find(serv => serv.id === val);
+                                                    if (s) {
+                                                        setNewBooking({ 
+                                                            ...newBooking, 
+                                                            serviceId: s.id, 
+                                                            serviceName: s.name, 
+                                                            price: s.promo_price || s.price 
+                                                        });
+                                                    }
+                                                }
+                                            }}
+                                            className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white mb-2"
+                                        >
+                                            <option value="custom">-- Servicio Personalizado / Otro --</option>
+                                            {services.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name} (€{s.promo_price || s.price})</option>
+                                            ))}
+                                        </select>
+                                        
+                                        {(!(newBooking as any).serviceId || (newBooking as any).serviceId === '') && (
+                                            <input
+                                                type="text"
+                                                value={newBooking.serviceName}
+                                                onChange={e => setNewBooking({ ...newBooking, serviceName: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-stone-200 animate-in fade-in slide-in-from-top-1"
+                                                placeholder="Nombre del servicio personalizado"
+                                            />
+                                        )}
+                                        <p className="text-xs text-stone-400 mt-1">Selecciona un servicio o escribe uno personalizado</p>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-stone-400 mb-2 uppercase">Precio (€)</label>
@@ -427,8 +482,17 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                                     </div>
 
                                     <div className="pt-2 flex flex-col gap-2">
+                                        {availabilityWarning && (
+                                            <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-2 animate-in pulse duration-500">
+                                                <p className="text-amber-700 text-xs font-bold flex items-center gap-2">
+                                                    <span className="text-lg">⚠️</span> {availabilityWarning}
+                                                </p>
+                                            </div>
+                                        )}
                                         <Button
                                             disabled={isSaving}
+                                            variant={isOverbooking ? 'outline' : 'gold'}
+                                            className={isOverbooking ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : ''}
                                             onClick={async () => {
                                                 if (!newBooking.clientName || !newBooking.serviceName) {
                                                     alert('Por favor complete Nombre y Servicio');
@@ -441,6 +505,7 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                                                     id: crypto.randomUUID(),
                                                     clientName: newBooking.clientName,
                                                     clientPhone: newBooking.clientPhone ? `${newBooking.countryCode} ${newBooking.clientPhone}`.trim() : '',
+                                                    serviceId: (newBooking as any).serviceId || undefined,
                                                     serviceName: newBooking.serviceName,
                                                     price: newBooking.price,
                                                     paymentMethod: newBooking.paymentMethod,
@@ -459,6 +524,7 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                                                         clientName: '',
                                                         countryCode: '+34',
                                                         clientPhone: '',
+                                                        serviceId: '',
                                                         serviceName: '',
                                                         price: '' as any,
                                                         professionalId: '',
@@ -487,6 +553,7 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                                                     id: crypto.randomUUID(),
                                                     clientName: newBooking.clientName,
                                                     clientPhone: newBooking.clientPhone ? `${newBooking.countryCode} ${newBooking.clientPhone}`.trim() : '',
+                                                    serviceId: (newBooking as any).serviceId || undefined,
                                                     serviceName: newBooking.serviceName,
                                                     price: newBooking.price,
                                                     paymentMethod: newBooking.paymentMethod,
@@ -806,6 +873,7 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                             clientName: savedBooking.clientName,
                             countryCode: countryCode,
                             clientPhone: phone,
+                            serviceId: '',
                             serviceName: '', // Keep empty for the new booking
                             price: '' as any,
                             professionalId: savedBooking.professionalId || '',

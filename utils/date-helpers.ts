@@ -245,7 +245,9 @@ export function checkAvailability(
             const bookingStart = minutesFromMidnight(booking.time);
 
             // Find service duration for this booking
-            const bookingService = services.find(s => s.id === booking.serviceId);
+            // Fallback to name search for manual/legacy bookings without serviceId
+            const bookingService = services.find(s => s.id === booking.serviceId) || 
+                                   services.find(s => s.name.toLowerCase() === booking.serviceName?.toLowerCase());
             const bookingDuration = bookingService ? parseDuration(bookingService.duration) : 30; // Default 30 min safety
 
             const bookingEnd = bookingStart + bookingDuration;
