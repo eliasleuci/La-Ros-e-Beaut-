@@ -125,7 +125,7 @@ export function BookingWizard() {
                 // Let's stick to 'pending' as per original file.
                 // Wait, original file had 'pending'.
                 professionalId: randomProfessional?.id,
-                price: data.service.price,
+                price: data.service.promo_price || data.service.price,
                 paymentMethod: paymentMethod
             };
             // Override Booking status to pending
