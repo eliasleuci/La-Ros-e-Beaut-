@@ -204,7 +204,7 @@ export default function AdminPage() {
 
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-stone-100 p-4">
+            <div className="min-h-screen flex items-center justify-center p-4 admin-dashboard">
                 <Card className="max-w-sm w-full">
                     <h1 className="text-2xl font-bold text-center mb-6">Acceso Admin</h1>
                     <form onSubmit={handleLogin} className="space-y-4">
@@ -224,7 +224,7 @@ export default function AdminPage() {
     }
 
     return (
-        <div className="min-h-screen bg-stone-50 p-4 md:p-12 pb-32">
+        <div className="min-h-screen p-4 md:p-12 pb-32 admin-dashboard">
             <div className="max-w-6xl mx-auto space-y-12">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-16">

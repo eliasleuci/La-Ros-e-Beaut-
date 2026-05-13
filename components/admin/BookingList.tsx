@@ -249,13 +249,13 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
             </div>
 
             <Card>
-                <div className="flex justify-between items-center mb-10">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-10">
                     <h2 className="text-2xl font-serif font-bold text-stone-800">
                         Agenda de Turnos
                     </h2>
 
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <label className="text-xs font-bold text-stone-400 uppercase hidden md:inline mr-2">Filtrar por:</label>
+                    <div className="flex flex-row xl:flex-wrap gap-2 items-center w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 scrollbar-hide">
+                        <label className="text-xs font-bold text-stone-400 uppercase hidden md:inline mr-2 whitespace-nowrap">Filtrar por:</label>
                         {[
                             { id: 'all', label: 'Todos' },
                             { id: 'pending', label: 'Pendientes' },
@@ -269,7 +269,7 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                                     setFilterStatus(status.id);
                                     if (status.id === 'all') setShowHistorical(false);
                                 }}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${filterStatus === status.id
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border whitespace-nowrap ${filterStatus === status.id
                                     ? 'bg-stone-800 text-white border-stone-800 shadow-md'
                                     : 'bg-white text-stone-500 border-stone-200 hover:border-gold-300'
                                     }`}
@@ -291,7 +291,7 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                         )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between w-full xl:w-auto gap-2 border-t xl:border-t-0 border-stone-100 pt-4 xl:pt-0">
                         <label className="text-xs font-bold text-stone-400 uppercase hidden md:inline">Fecha:</label>
                         <div className="flex items-center gap-1">
                             <button
@@ -772,7 +772,7 @@ Te esperamos en 📍Shay Beauty Clinic. Av Nabeul 14`;
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4 w-full md:w-auto">
+                                    <div className="flex flex-wrap items-center justify-between gap-4 w-full md:w-auto mt-2 md:mt-0">
                                         <div className="text-right hidden md:block mr-4">
                                             <p className="text-xs text-stone-400 font-bold uppercase">{formatDate(booking.date)}</p>
                                             <p className="text-2xl font-serif font-bold text-stone-800">{booking.time}</p>
