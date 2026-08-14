@@ -480,6 +480,9 @@ export default function AdminPage() {
                         {/* Inventario */}
                         <InventoryManager />
 
+                        <ReviewManager />
+                        <GalleryManager />
+                        <FAQManager />
 
                     </div>
 
@@ -534,9 +537,6 @@ export default function AdminPage() {
                                 </div>
                             </div>
                         </Card>
-                        <ReviewManager />
-                        <GalleryManager />
-                        <FAQManager />
                     </div>
                 </div>
                 )}

@@ -297,24 +297,36 @@ export function ClientProfileManager() {
 
             {/* Unregistered Clients Alert */}
             {unregisteredClients.length > 0 && !searchQuery && !filterTag && (
-                <div className="mb-6 p-4 rounded-2xl bg-blue-50/80 border border-blue-200/50">
-                    <p className="text-xs font-bold text-blue-500 uppercase tracking-tighter mb-2">
-                        {unregisteredClients.length} cliente{unregisteredClients.length > 1 ? 's' : ''} con turnos sin registrar en CRM
-                    </p>
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {unregisteredClients.slice(0, 5).map((c, i) => (
-                            <div key={i} className="flex items-center justify-between text-sm">
-                                <span className="text-stone-700">
-                                    {c.name} <span className="text-stone-400">({c.phone})</span> — {c.visits} visita{c.visits > 1 ? 's' : ''}
-                                </span>
-                                <button
-                                    onClick={() => handleImportClient(c)}
-                                    className="text-[10px] font-bold text-blue-600 uppercase hover:text-blue-800"
-                                >
-                                    + Importar
-                                </button>
-                            </div>
-                        ))}
+                <div className="mb-6 rounded-2xl bg-gradient-to-r from-stone-50 to-white border border-stone-200 overflow-hidden shadow-sm">
+                    <div className="bg-stone-100/50 px-5 py-4 border-b border-stone-200 flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-bold text-stone-800">Clientes Detectados</p>
+                            <p className="text-[10px] font-medium text-stone-500 uppercase tracking-tighter mt-0.5">
+                                Hay {unregisteredClients.length} cliente{unregisteredClients.length > 1 ? 's' : ''} en el historial de turnos que no están en el CRM
+                            </p>
+                        </div>
+                    </div>
+                    <div className="p-2">
+                        <div className="max-h-56 overflow-y-auto pr-2 space-y-1" style={{ scrollbarWidth: 'thin' }}>
+                            {unregisteredClients.map((c, i) => (
+                                <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-stone-50 transition-colors group">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-stone-800 group-hover:text-[#C5A02E] transition-colors">
+                                            {c.name || 'Sin Nombre'}
+                                        </span>
+                                        <span className="text-[10px] text-stone-400 font-medium">
+                                            {c.phone} • {c.visits} visita{c.visits > 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => handleImportClient(c)}
+                                        className="px-4 py-1.5 rounded-lg bg-stone-100 text-stone-600 text-[10px] font-bold uppercase tracking-wider hover:bg-[#C5A02E] hover:text-white transition-all"
+                                    >
+                                        Importar
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
