@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useConfig } from '@/context/ConfigContext';
 import { Card } from '@/components/ui/Card';
 import {
@@ -17,6 +17,8 @@ export function AnalyticsDashboard() {
         inventoryItems,
         serviceInventoryCosts
     } = useConfig();
+
+    const [timeframe, setTimeframe] = useState<3 | 6 | 12>(6);
 
     // Recalculate on mount and when data changes
     useEffect(() => {
@@ -103,9 +105,26 @@ export function AnalyticsDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {/* Income Trend */}
                 <div className="bg-stone-50 p-5 rounded-2xl border border-stone-100">
-                    <p className="text-xs font-bold text-stone-400 uppercase tracking-tighter mb-4">Ingresos Últimos 6 Meses</p>
+                    <div className="flex items-center justify-between mb-4">
+                        <p className="text-xs font-bold text-stone-400 uppercase tracking-tighter">Ingresos (Tendencia)</p>
+                        <div className="flex gap-1 bg-stone-200/50 p-1 rounded-lg">
+                            {([3, 6, 12] as const).map(t => (
+                                <button
+                                    key={t}
+                                    onClick={() => setTimeframe(t)}
+                                    className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md transition-all ${
+                                        timeframe === t
+                                            ? 'bg-white text-[#C5A02E] shadow-sm'
+                                            : 'text-stone-500 hover:text-stone-700'
+                                    }`}
+                                >
+                                    {t}M
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                     <ResponsiveContainer width="100%" height={200}>
-                        <LineChart data={m.incomeByMonth}>
+                        <LineChart data={m.incomeByMonth.slice(-timeframe)}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#E8DED5" />
                             <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9C8775' }} />
                             <YAxis tick={{ fontSize: 10, fill: '#9C8775' }} />

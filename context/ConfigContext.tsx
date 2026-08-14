@@ -1080,9 +1080,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             .sort((a, b) => b.revenue - a.revenue)
             .slice(0, 5);
 
-        // Income by month (last 6 months)
+        // Income by month (last 12 months)
         const incomeByMonth: Array<{ month: string; income: number }> = [];
-        for (let i = 5; i >= 0; i--) {
+        for (let i = 11; i >= 0; i--) {
             const d = new Date(thisYear, thisMonth - i, 1);
             const monthBookings = attendedBookings.filter(b => {
                 const bd = new Date(b.date);

@@ -480,6 +480,11 @@ export default function AdminPage() {
                         {/* Inventario */}
                         <InventoryManager />
 
+
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="md:col-span-5 space-y-12">
                         {/* Equipo */}
                         <TeamManager />
 
@@ -529,10 +534,6 @@ export default function AdminPage() {
                                 </div>
                             </div>
                         </Card>
-                    </div>
-
-                    {/* Right Column */}
-                    <div className="md:col-span-5 space-y-12">
                         <ReviewManager />
                         <GalleryManager />
                         <FAQManager />
