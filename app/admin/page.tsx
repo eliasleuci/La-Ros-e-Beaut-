@@ -14,6 +14,9 @@ import { BookingList } from '@/components/admin/BookingList';
 import { ReviewManager } from '@/components/admin/ReviewManager';
 import { ExpenseManager } from '@/components/admin/ExpenseManager';
 import { ClientSearch } from '@/components/admin/ClientSearch';
+import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
+import { ClientProfileManager } from '@/components/admin/ClientProfileManager';
+import { InventoryManager } from '@/components/admin/InventoryManager';
 
 export default function AdminPage() {
     const { services, businessPhone, instagramLink, categoryOrder, adminPin, updateServices, updatePhone, updateInstagramLink, updateCategoryOrder } = useConfig();
@@ -28,6 +31,7 @@ export default function AdminPage() {
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
     const [creatingInCategory, setCreatingInCategory] = useState<string | null>(null);
     const [editingCategory, setEditingCategory] = useState<{ es: string, en: string, original: string } | null>(null);
+    const [adminTab, setAdminTab] = useState<'gestion' | 'crm' | 'analytics'>('gestion');
 
     // Synchronize local input with context value when it loads
     React.useEffect(() => {
@@ -227,11 +231,44 @@ export default function AdminPage() {
         <div className="min-h-screen p-4 md:p-12 pb-32 admin-dashboard">
             <div className="max-w-6xl mx-auto space-y-12">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-16">
+                <div className="flex items-center justify-between mb-8">
                     <h1 className="text-4xl font-serif font-bold text-stone-800">Panel de Control</h1>
                     <Button variant="goldOutline" onClick={handleLogout} className="px-10 !rounded-none py-2 text-[12px]">SALIR</Button>
                 </div>
 
+                {/* Tab Selector */}
+                <div className="flex gap-3 mb-10">
+                    {(['gestion', 'crm', 'analytics'] as const).map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setAdminTab(tab)}
+                            className={`px-6 py-2.5 rounded-xl font-bold uppercase text-[11px] tracking-wider transition-all duration-300 ${
+                                adminTab === tab
+                                    ? 'bg-[#C5A02E] text-white shadow-md shadow-[#C5A02E]/20'
+                                    : 'bg-stone-100 text-stone-500 hover:bg-stone-200 hover:text-stone-700'
+                            }`}
+                        >
+                            {tab === 'gestion' ? '📋 Gestión' : tab === 'crm' ? '👥 CRM' : '📊 Analítica'}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Analytics Tab */}
+                {adminTab === 'analytics' && (
+                    <div className="space-y-12 animate-in fade-in duration-500">
+                        <AnalyticsDashboard />
+                    </div>
+                )}
+
+                {/* CRM Tab */}
+                {adminTab === 'crm' && (
+                    <div className="space-y-12 animate-in fade-in duration-500">
+                        <ClientProfileManager />
+                    </div>
+                )}
+
+                {/* Gestión Tab (existing layout) */}
+                {adminTab === 'gestion' && (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
                     {/* Agenda - Full Width Top Row */}
                     <div className="md:col-span-12 animate-in fade-in duration-700">
@@ -440,6 +477,17 @@ export default function AdminPage() {
                         {/* Gastos */}
                         <ExpenseManager />
 
+                        {/* Inventario */}
+                        <InventoryManager />
+
+                        <ReviewManager />
+                        <GalleryManager />
+                        <FAQManager />
+
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="md:col-span-5 space-y-12">
                         {/* Equipo */}
                         <TeamManager />
 
@@ -490,14 +538,8 @@ export default function AdminPage() {
                             </div>
                         </Card>
                     </div>
-
-                    {/* Right Column */}
-                    <div className="md:col-span-5 space-y-12">
-                        <ReviewManager />
-                        <GalleryManager />
-                        <FAQManager />
-                    </div>
                 </div>
+                )}
             </div>
         </div>
     );
